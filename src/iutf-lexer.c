@@ -202,7 +202,14 @@ IutfToken iutf_lexer_next (IutfLexer* lexer) {
     case '=': return make_token (lexer, IUTF_TOK_EQUALS, start);
     case '|': return make_token (lexer, IUTF_TOK_PIPE, start);
     case ',': return make_token (lexer, IUTF_TOK_COMMA, start);
-    case ';': skip_line_comment (lexer); continue;
+    case '#':
+      if (current (lexer) == '!') {
+        advance (lexer);
+        skip_line_comment (lexer);
+        continue;
+      } else {
+        return make_token (lexer, IUTF_TOK_IDENTIFIER, start);
+      }
     case '/':
       if (current (lexer) == '/') {
         advance (lexer);
