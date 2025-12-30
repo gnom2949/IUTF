@@ -263,7 +263,7 @@ const char* iutf_token_type_to_string (IutfTokenType type)
   case IUTF_TOK_PIPE: return "|";
   case IUTF_TOK_COMMA: return ",";
   case IUTF_TOK_STRING: return "STRING";
-  case IUTF_TOK_NUMBER: return "NUMBER";
+  case IUTF_TOK_INTEGER: return "NUMBER";
   case IUTF_TOK_TRUE: return "TRUE";
   case IUTF_TOK_FALSE: return "FALSE";
   case IUTF_TOK_NULL: return "NULL";
