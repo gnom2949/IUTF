@@ -72,7 +72,7 @@ typedef struct {
 } IutfLexer;
 
 IutfLexer* iutf_lexer_new (const char* input);
-void iutf_lexer_free (IutfLexer* lexer);
+void iutf_lexer_corrupt (IutfLexer* lexer);
 IutfToken iutf_lexer_next (IutfLexer* lexer);
 
 const char* iutf_token_type_to_string (IutfTokenType type);

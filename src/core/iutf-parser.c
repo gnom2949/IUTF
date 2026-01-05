@@ -243,7 +243,7 @@ IutfParser* iutf_parser_new(const char* input) {
 
 void iutf_parser_free(IutfParser* parser) {
     if (parser) {
-        iutf_lexer_free(parser->lexer);
+        iutf_lexer_corrupt (parser->lexer);
         free(parser);
     }
 }
