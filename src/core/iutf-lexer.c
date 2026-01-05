@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "../includes/iutf-lexer.h"
+#include "../../includes/iutf-lexer.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -83,7 +83,7 @@ static IutfToken read_number (IutfLexer* lexer, size_t start)
   while (isdigit(current(lexer)) || current(lexer) == '.') {
     advance(lexer);
   }
-  return make_token(lexer, IUTF_TOK_NUMBER, start);
+  return make_token(lexer, IUTF_TOK_INTEGER, start);
 }
 
 static IutfToken read_string (IutfLexer* lexer)

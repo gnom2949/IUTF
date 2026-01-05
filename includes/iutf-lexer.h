@@ -20,10 +20,13 @@
 #ifndef IUTF_LEXER_H
 #define IUTF_LEXER_H
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 typedef enum {
   IUTF_TOK_EOF,

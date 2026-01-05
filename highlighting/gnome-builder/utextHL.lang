@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language id="utext" _name="Unified Text Extension" version="2.0" section="Configuration">
+  <metadata>
+    <property name="globs">*.utext</property>
+    <property name="name">Unified Text Extension</property>
+  </metadata>
+  <styles>
+    <style id="def" _name="Default" map-to="def:text"/>
+    <style id="keyword" _name="Keyword" map-to="def:keyword"/>
+    <style id="string" _name="String" map-to="def:string"/>
+    <style id="number" _name="Number" map-to="def:number"/>
+    <style id="comment" _name="Comment" map-to="def:comment"/>
+  </styles>
+  <definitions>
+    <context id="utext" style-ref="def">
+      <start></start>
+      <end></end>
+      <include>
+        <context ref="keywords"/>
+        <context ref="strings"/>
+        <context ref="numbers"/>
+        <context ref="comments"/>
+      </include>
+    </context>
+
+    <context id="keywords">
+      <keyword id="iutf" style-ref="keyword">iutf</keyword>
+      <keyword id="extension" style-ref="keyword">extension</keyword>
+      <keyword id="provides" style-ref="keyword">provides</keyword>
+      <keyword id="type" style-ref="keyword">type</keyword>
+      <keyword id="fn" style-ref="keyword">fn</keyword>
+      <keyword id="true" style-ref="keyword">true</keyword>
+      <keyword id="false" style-ref="keyword">false</keyword>
+      <keyword id="null" style-ref="keyword">null</keyword>
+    </context>
+
+    <context id="strings">
+      <start>"</start>
+      <end>"</end>
+      <style-ref="string"/>
+    </context>
+
+    <context id="numbers">
+      <match>\b\d+\.?\d*\b</match>
+      <style-ref="number"/>
+    </context>
+
+    <context id="comments">
+      <start>#!</start>
+      <end>\n</end>
+      <style-ref="comment"/>
+    </context>
+    <context id="comments_cpp">
+      <start>//</start>
+      <end>\n</end>
+      <style-ref="comment"/>
+    </context>
+    <context id="comments_block">
+      <start>/*</start>
+      <end>*/</end>
+      <style-ref="comment"/>
+    </context>
+  </definitions>
+</language>
