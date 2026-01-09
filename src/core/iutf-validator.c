@@ -31,12 +31,12 @@ int iutf_validate(IutfNode* root) {
         return 0;
     }
 
-    // Валидация: проверяем, что в корне есть нужные ключи
+    // Validation: Check that the root contains the required keys
     int has_title = 0;
     int has_version = 0;
 
-    for (size_t i = 0; i < root->data.branch_size; i++) {
-        IutfNode* item = root->data.branch_items[i];
+    for (size_t i = 0; i < root->data.branch.size; i++) {
+        IutfNode* item = root->data.branch.items[i];
         if (item->key && strcmp(item->key, "title") == 0) {
             if (item->type != IUTF_NODE_STRING) {
                 fprintf(stderr, "Field 'title' must be a string\n");
@@ -57,5 +57,5 @@ int iutf_validate(IutfNode* root) {
         return 0;
     }
 
-    return 1; // Валидация пройдена
+    return 1; // Validation complete
 }

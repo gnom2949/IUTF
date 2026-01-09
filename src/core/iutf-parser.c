@@ -29,18 +29,24 @@ static void advance(IutfParser* parser) {
 static IutfNode* parse_value(IutfParser* parser);
 static IutfNode* parse_branch(IutfParser* parser);
 
-static char* safe_strndup(const char* s, size_t n) {
+static char* safe_strndup(const char* s, size_t n) { // я ебал блять этот ебучий сегфолт
     char* dup = malloc(n + 1);
-    if (dup) {
-        strncpy(dup, s, n);
-        dup[n] = '\0';
-    }
+    if (!dup) return NULL;
+    memcpy(dup, s, n);
+    dup[n] = '\0';
     return dup;
 }
 
 static IutfNode* parse_string(IutfParser* parser) {
     IutfNode* node = iutf_node_new(IUTF_NODE_STRING);
+    if (!node) return NULL;
+
     node->data.str_value = safe_strndup(parser->current.start, parser->current.length);
+    if (!node->data.str_value) {
+      fprintf(stderr, "Failed to allocate string!!\n");
+      iutf_node_free (node);
+      return NULL;
+    }
     advance(parser);
     return node;
 }
@@ -65,11 +71,18 @@ static IutfNode* parse_number(IutfParser* parser) {
 
 static IutfNode* parse_character(IutfParser* parser) {
     IutfNode* node = iutf_node_new(IUTF_NODE_CHARACTER);
-    // Пропускаем кавычки
+    if (!node) return NULL;
+
+    // skip ''
     if (parser->current.length >= 3 && parser->current.start[1] == '\\') {
-        node->data.char_value = parser->current.start[2]; // экранированный символ
+        node->data.char_value = parser->current.start[2];
     } else {
-        node->data.char_value = parser->current.start[1]; // обычный символ
+        if (parser->current.length < 3) {
+            fprintf(stderr, "Invalid character literal\n");
+            iutf_node_free(node);
+            return NULL;
+        }
+        node->data.char_value = parser->current.start[1];
     }
     advance(parser);
     return node;
@@ -84,8 +97,7 @@ static IutfNode* parse_boolean(IutfParser* parser) {
 
 static IutfNode* parse_array(IutfParser* parser) {
     IutfNode* node = iutf_node_new(IUTF_NODE_ARRAY);
-    node->data.array_items = NULL;
-    node->data.array_size = 0;
+    if (!node) return NULL;
 
     advance(parser); // skip '['
 
@@ -93,9 +105,16 @@ static IutfNode* parse_array(IutfParser* parser) {
         IutfNode* item = parse_value(parser);
         if (!item) break;
 
-        node->data.array_items = realloc(node->data.array_items, (node->data.array_size + 1) * sizeof(IutfNode*));
-        node->data.array_items[node->data.array_size] = item;
-        node->data.array_size++;
+        struct IutfNode** temp = realloc(node->data.array.items, (node->data.array.size + 1) * sizeof(struct IutfNode*));
+        if (!temp) {
+            fprintf(stderr, "Out of memory\n");
+            iutf_node_free(item);
+            iutf_node_free(node);
+            return NULL;
+        }
+        node->data.array.items = temp;
+        node->data.array.items[node->data.array.size] = item;
+        node->data.array.size++;
 
         if (parser->current.type == IUTF_TOK_COMMA) {
             advance(parser);
@@ -113,8 +132,16 @@ static IutfNode* parse_array(IutfParser* parser) {
 
 static IutfNode* parse_bigstring(IutfParser* parser) {
     IutfNode* node = iutf_node_new(IUTF_NODE_BIGSTRING);
-    // Пропускаем "BigString["
-    size_t start = parser->current.start - parser->lexer->input + 9; // "BigString" length
+    if (!node) return NULL;
+
+    // skip "BigString["
+    size_t start = (parser->current.start - parser->lexer->input) + 9; // "BigString" length
+    if (start >= parser->lexer->len) {
+        fprintf(stderr, "Invalid BigString start\n");
+        iutf_node_free(node);
+        return NULL;
+    }
+
     int depth = 1;
     size_t pos = start;
     while (depth > 0 && pos < parser->lexer->len) {
@@ -122,18 +149,37 @@ static IutfNode* parse_bigstring(IutfParser* parser) {
         else if (parser->lexer->input[pos] == ']') depth--;
         pos++;
     }
+
+    if (depth != 0) {
+        fprintf(stderr, "Unterminated BigString\n");
+        iutf_node_free(node);
+        return NULL;
+    }
+
     size_t end = pos - 1;
+    if (end < start) {
+        fprintf(stderr, "Invalid BigString range\n");
+        iutf_node_free(node);
+        return NULL;
+    }
+
     node->data.str_value = safe_strndup(parser->lexer->input + start, end - start);
-    // Пропускаем до конца токена
+    if (!node->data.str_value) {
+        fprintf(stderr, "Failed to allocate BigString\n");
+        iutf_node_free(node);
+        return NULL;
+    }
+
     while (parser->current.type != IUTF_TOK_BIGSTRING_START && parser->current.type != IUTF_TOK_EOF) {
         advance(parser);
     }
     advance(parser); // skip ']'
     return node;
 }
-
 static IutfNode* parse_pipe_string(IutfParser* parser) {
     IutfNode* node = iutf_node_new(IUTF_NODE_PIPESTRING);
+    if (!node) return NULL;
+
     advance(parser); // skip opening |
 
     size_t start = parser->lexer->pos;
@@ -141,7 +187,19 @@ static IutfNode* parse_pipe_string(IutfParser* parser) {
         advance(parser);
     }
 
+    if (parser->current.type != IUTF_TOK_PIPE) {
+        fprintf(stderr, "Unterminated pipe string\n");
+        iutf_node_free(node);
+        return NULL;
+    }
+
     node->data.str_value = safe_strndup(parser->lexer->input + start, parser->lexer->pos - start);
+    if (!node->data.str_value) {
+        fprintf(stderr, "Failed to allocate pipe string\n");
+        iutf_node_free(node);
+        return NULL;
+    }
+
     advance(parser); // skip closing |
     return node;
 }
@@ -178,14 +236,19 @@ static IutfNode* parse_value(IutfParser* parser) {
 
 static IutfNode* parse_branch(IutfParser* parser) {
     IutfNode* node = iutf_node_new(IUTF_NODE_BRANCH);
-    node->data.branch_items = NULL;
-    node->data.branch_size = 0;
+    if (!node) return NULL;
+
 
     advance(parser); // skip '{'
 
     while (parser->current.type != IUTF_TOK_BRANCH_CLOSE && parser->current.type != IUTF_TOK_EOF) {
         if (parser->current.type == IUTF_TOK_IDENTIFIER) {
             char* key = safe_strndup(parser->current.start, parser->current.length);
+            if (!key) {
+                fprintf(stderr, "Failed to allocate key\n");
+                iutf_node_free(node);
+                return NULL;
+            }
             advance(parser);
 
             if (parser->current.type == IUTF_TOK_COLON) {
@@ -198,9 +261,17 @@ static IutfNode* parse_branch(IutfParser* parser) {
                 }
                 value->key = key;
 
-                node->data.branch_items = realloc(node->data.branch_items, (node->data.branch_size + 1) * sizeof(IutfNode*));
-                node->data.branch_items[node->data.branch_size] = value;
-                node->data.branch_size++;
+                struct IutfNode** temp = realloc(node->data.branch.items, (node->data.branch.size + 1) * sizeof(struct IutfNode*));
+                if (!temp) {
+                    fprintf(stderr, "Out of memory\n");
+                    free(key);
+                    iutf_node_free(value);
+                    iutf_node_free(node);
+                    return NULL;
+                }
+                node->data.branch.items = temp;
+                node->data.branch.items[node->data.branch.size] = value;
+                node->data.branch.size++;
             } else {
                 fprintf(stderr, "Expected ':', got %s\n", iutf_token_type_to_string(parser->current.type));
                 free(key);

@@ -20,7 +20,7 @@
 #include "../../includes/iutf-ast.h"
 
 IutfNode* iutf_node_new(IutfNodeType type) {
-    IutfNode* node = malloc(sizeof(IutfNode));
+    IutfNode* node = calloc(1, sizeof(IutfNode));
     if (!node) return NULL;
     node->type = type;
     node->key = NULL;
@@ -39,16 +39,16 @@ void iutf_node_free(IutfNode* node) {
             free(node->data.str_value);
             break;
         case IUTF_NODE_ARRAY:
-            for (size_t i = 0; i < node->data.array_size; i++) {
-                iutf_node_free(node->data.array_items[i]);
+            for (size_t i = 0; i < node->data.array.size; i++) {
+                iutf_node_free(node->data.array.items[i]);
             }
-            free(node->data.array_items);
+            free(node->data.array.items);
             break;
         case IUTF_NODE_BRANCH:
-            for (size_t i = 0; i < node->data.branch_size; i++) {
-                iutf_node_free(node->data.branch_items[i]);
+            for (size_t i = 0; i < node->data.branch.size; i++) {
+                iutf_node_free(node->data.branch.items[i]);
             }
-            free(node->data.branch_items);
+            free(node->data.branch.items);
             break;
         default:
             break;

@@ -49,10 +49,16 @@ typedef struct IutfNode {
         long long long_value;
         char char_value;
         int bool_value;
-        struct IutfNode** array_items;
-        size_t array_size;
-        struct IutfNode** branch_items;
-        size_t branch_size;
+        struct {
+            struct IutfNode** items;
+            size_t size;
+        } array;
+        struct {
+            struct IutfNode** items;
+            size_t size;
+        } branch;
+        char* bigstring_value;
+        char* pipestring_value;
     } data;
 } IutfNode;
 
