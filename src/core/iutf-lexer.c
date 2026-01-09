@@ -94,7 +94,11 @@ static IutfToken read_string (IutfLexer* lexer)
   while (current(lexer) != '"' && current (lexer) != '\0') {
     if (current (lexer) == '\\') {
       advance (lexer);
-        if (current (lexer) != '\0') advance (lexer);
+        if (current (lexer) != '\0') {
+          advance (lexer);
+        } else {
+            return error_token (lexer, "Unterminated escape sequence");
+        }
     } else {
       advance (lexer);
     }
