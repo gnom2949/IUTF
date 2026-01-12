@@ -133,7 +133,7 @@ IUTF поддерживает валидацию через ast и пользо�
 iutf:init:main {
     deps::init { #! Инициализация ветки deps
         @import<colors> from "utext://colors.utext" #! Импортируем библиотеку colors из локальной директории, при желании можно указать любую другую директорию.
-        @import<markdown> from "sfs" #! Импортируем библиотеку "Markdown" из sfs(/usr/bin/sfs/).
+        @import<markdown> from "sfs" #! Импортируем библиотеку "Markdown" из sfs(/usr/include/sfs/).
     }
 
     title: "My Project"
@@ -147,3 +147,120 @@ iutf:init:main {
     |
 }
 ```
+
+## Интеграция с другими языками
+
+IUTF разработан для **простой интеграции** с различными языками программирования. Ниже приведены примеры использования IUTF в **Vala**, **Python**, **Rust**, **Go** и других.
+
+---
+
+### Vala
+
+IUTF поддерживает **Vala VAPI-файл** (`IUTF.vapi`), который позволяет использовать IUTF-парсер в проектах GNOME и других Vala-приложениях.
+Также есть поддержка C позволяющая интегрировать **IUTF** в ваши C проекты
+
+#### Установка
+
+Помести `IUTF.vapi` в `vapi/` или `/usr/share/vala/vapi/`.
+
+#### Пример:
+
+```vala
+using IUTF;
+
+int main() 
+{
+    var lexer = new Lexer("iutf:init:main { title: \"Hello\" }");
+    var token = lexer.next();
+
+    while (token.type != TokenType.EOF) {
+        stdout.printf("[%d:%d] %s\n", token.line, token.col, token.type.to_string());
+        token = lexer.next();
+    }
+
+    return 0;
+}
+```
+
+#### Компиляция
+```shell
+valac --pkg glib-2.0 main.vala -X -Iincludes -X src/core/iutf-lexer.c -X src/core/iutf-ast.c -X src/core/iutf-parser.c -X src/core/iutf-validator.c
+```
+
+### Python
+
+**IUTF** можно использовать в Python через **ctypes**, если скомпилировать его как `.so`.
+
+#### Пример
+```python
+import ctypes
+
+lib = ctypes.CDLL('./libiutf.so')
+
+lib.iutf_lexer_new.argtypes = [ctypes.c_char_p]
+lib.iutf_lexer_next.restype = ctypes.c_void_p    
+```
+
+### Rust
+
+**IUTF** можно использовать в Rust через bindgen и `cc` crate.
+
+#### Пример
+
+```rust
+use std::env;
+use std::path::PathBuf;
+
+fn main()
+{
+    println!("cargo:rerun-if-changed=includes/");
+    println!("cargo:rerun-if-changed=src/core/");
+
+    cc::Build::new()
+        .file("src/core/iutf-lexer.c")
+        .file("src/core/iutf-ast.c")
+        .file("src/core/iutf-parser.c")
+        .file("src/core/iutf-validator.c")
+        .include("includes/")
+        .compile("libiutf.a");
+
+    let bindings = bindgen::Builder::default()
+        .header("includes/iutf-lexer.h")
+        .generate()
+        .expect("Unable to generate bindings");
+
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings.write_to_file(out_path.join("bindings.rs")).expect("Couldn't write bindings");
+}
+```
+
+### Go
+
+**IUTF** можно использовать в Go через **CGO**
+
+#### Пример
+```
+package main
+
+/*
+#cgo CFLAGS: -Iincludes
+#cgo LDFLAGS: -L. -liutf
+#include "iutf-lexer.h"
+*/
+import "C"
+import "fmt"
+
+func main()
+{
+    lexer := C.iutf_lexer_new(C.CString("iutf:init:main { title: \"Hello\" }))
+    defer C.iutf_lexer_corrupt(lexer)
+
+    for {
+        token := C.iutf_lexer_next(lexer)
+        if token.type == C.IUTF_TOK_EOF {
+            break
+        }
+        fmt.Printf("Token: %s\n", C.GoString(C.iutf_token_type_to_string(token.type)))
+    }
+}
+``` 

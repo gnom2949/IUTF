@@ -69,22 +69,38 @@ static IutfNode* parse_number(IutfParser* parser) {
     return node;
 }
 
-static IutfNode* parse_character(IutfParser* parser) {
+static IutfNode* parse_character(IutfParser* parser)
+{
     IutfNode* node = iutf_node_new(IUTF_NODE_CHARACTER);
     if (!node) return NULL;
 
-    // skip ''
-    if (parser->current.length >= 3 && parser->current.start[1] == '\\') {
-        node->data.char_value = parser->current.start[2];
-    } else {
-        if (parser->current.length < 3) {
-            fprintf(stderr, "Invalid character literal\n");
-            iutf_node_free(node);
-            return NULL;
-        }
-        node->data.char_value = parser->current.start[1];
+    // parser->current.start points to the first quote
+    // Expected format: 'x' or '\x' where x is an escaped character
+
+    if (parser->current.length < 3) {
+      fprintf(stderr, "\033[31mInvalid character literal\033[0m\n");
+      iutf_node_free (node);
+      return NULL;
     }
-    advance(parser);
+
+    if (parser->current.start[1] == '\\') {
+        char esc = parser->current.start[2];
+        switch (esc)
+        {
+          case 'n': node->data.char_value = '\n'; break;
+          case 't': node->data.char_value = '\t'; break;
+          case 'r': node->data.char_value = '\r'; break;
+          case '\\': node->data.char_value = '\\'; break;
+          case '\'': node->data.char_value = '\''; break;
+          case '\"': node->data.char_value = '\"'; break;
+        default:
+            node->data.char_value = esc; // treat as literal
+            break;
+        }
+    } else {
+      node->data.char_value = parser->current.start[1];
+    }
+    advance (parser);
     return node;
 }
 
