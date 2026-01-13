@@ -51,10 +51,68 @@ IutfNode* iutf_new_str (const char* value)
   return node;
 }
 
-IutfNode* iutf_int_new (long long value)
+IutfNode* iutf_new_int (long long value)
 {
   IutfNode* node = iutf_node_new (IUTF_NODE_INTEGER);
   if (!node) return NULL;
   node->data.int_value = value;
   return node;
+}
+
+IutfNode* iutf_new_float (double value)
+{
+  IutfNode* node = iutf_node_new (IUTF_NODE_FLOAT);
+  if (!node) return NULL;
+  node->data.float_value = value;
+  return node;
+}
+
+IutfNode* iutf_new_long (long long value)
+{
+  IutfNode* node = iutf_node_new (IUTF_NODE_LONG);
+  if (!node) return NULL;
+  node->data.long_value = value;
+  return node;
+}
+
+IutfNode* iutf_new_char (char value)
+{
+  IutfNode* node = iutf_node_new (IUTF_NODE_CHARACTER);
+  if (!node) return NULL;
+  node->data.char_value = value;
+  return node;
+}
+
+IutfNode* iutf_new_bool (int value)
+{
+  IutfNode* node = iutf_node_new (IUTF_NODE_BOOLEAN);
+  if (!node) return NULL;
+  node->data.bool_value = value;
+  return node;
+}
+
+IutfNode* iutf_new_null (void)
+{
+  return iutf_node_new (IUTF_NODE_NULL);
+}
+
+IutfNode* iutf_new_array (void)
+{
+  IutfNode* node = iutf_node_new (IUTF_NODE_ARRAY);
+  if (!node) return NULL;
+  node->data.array.items = NULL;
+  node->data.array.size = 0;
+  return node;
+}
+
+void add_to_array (IutfNode* array, IutfNode* item)
+{
+  if (!array || !item) return;
+
+  struct IutfNode** temp = realloc (array->data.array.items, (array->data.array.size + 1) * sizeof(struct IutfNode*));
+  if (!temp) return;
+
+  array->data.array.items = temp;
+  array->data.array.items[array->data.array.size] = item;
+  array->data.array.size++;
 }
