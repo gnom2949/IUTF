@@ -265,10 +265,10 @@ func main()
 }
 ```
 
-##IUTF API
+## IUTF API
 API который появился вместе с версией 0.4 позволяющий удобно создавать структуры
 
-####Пример
+#### Пример
 ```
 IutfNode* table = iutf_new_branch();
 iutf_branch_add(table, "StatVal", iutf_new_int(42));
