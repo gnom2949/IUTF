@@ -1,6 +1,6 @@
 /* example.c
  *
- * Copyright 2025 Int Software, Aleksandr Silaev
+ * Copyright 2026 Int Software, Aleksandr Silaev
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "../includes/iutf-lexer.h"
+#include "../src/includes/iutf-lexer.h"
 #include <stdio.h>
 
 int main (int argc, char *argv[])
