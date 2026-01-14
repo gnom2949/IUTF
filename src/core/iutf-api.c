@@ -116,3 +116,25 @@ void add_to_array (IutfNode* array, IutfNode* item)
   array->data.array.items[array->data.array.size] = item;
   array->data.array.size++;
 }
+
+IutfNode* iutf_new_BigString (const char* value)
+{
+  IutfNode* node = iutf_node_new (IUTF_NODE_BIGSTRING);
+  if (!node) return NULL;
+  node->data.str_value = value ? strdup (value) : NULL;
+  return node;
+}
+
+IutfNode* iutf_new_PipeStr (const char* value)
+{
+  IutfNode* node = iutf_node_new (IUTF_NODE_PIPESTRING);
+  if (!node) return NULL;
+  node->data.str_value = value ? strdup (value) : NULL;
+  return node;
+}
+
+//TODO: реализовать debug_print_string
+char* debug_print_string (IutfNode* node)
+{
+  return NULL;
+}
