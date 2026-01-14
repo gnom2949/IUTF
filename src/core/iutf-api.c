@@ -21,6 +21,28 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void append_to_buf (char** buf, size_t* size, const char* format, ...)
+{
+  va_list args;
+  va_start (args, format);
+
+  // determine the required size
+  va_list args_copy;
+  va_copy (args_copy, args);
+  int len = vsnprintf (NULL, 0, format, args_copy);
+  va_end (args_copy);
+
+  if (len < 0) return;
+
+  char* new_buf = realloc (*buf, *size + len + 1);
+  if (!new_buf) return;
+
+  *buf = new_buf;
+  vsprintf (*buf + *size, format, args);
+  *size += len;
+  va_end (args);
+}
+
 IutfNode* iutf_new_branch (void)
 {
   IutfNode* node = iutf_node_new (IUTF_NODE_BRANCH);
@@ -133,8 +155,77 @@ IutfNode* iutf_new_PipeStr (const char* value)
   return node;
 }
 
-//TODO: реализовать debug_print_string
+static void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent)
+{
+  if (!node) return;
+
+  // spacing
+  for (int i = 0; i < indent; i++) append_to_buf (buf, size, "  ");
+
+  //If the node has a key (for branches)
+  if (node->key) append_to_buf (buf, size, "\"%s\": ", node->key);
+
+  switch (node->type) {
+    case IUTF_NODE_BRANCH:
+      append_to_buf (buf, size, "{\n");
+      for (size_t i = 0; i < node->data.branch.size; i++) {
+        debug_print_recursive (node->data.branch.items[i], buf, size, indent + 1);
+        append_to_buf (buf, size, (i == node->data.branch.size - 1) ? "\n" : ",\n");
+      }
+      for (int i = 0; i < indent; i++) append_to_buf (buf, size, "  ");
+      append_to_buf (buf, size, "}");
+      break;
+
+    case IUTF_NODE_ARRAY:
+      append_to_buf (buf, size, "[\n");
+      for (size_t i = 0; i < node->data.array.size; i++) {
+        debug_print_recursive (node->data.array.items[i], buf, size, indent + 1);
+        append_to_buf (buf, size, (i == node->data.array.size - 1) ? "\n" : ",\n");
+      }
+      for (int i = 0; i < indent; i++) append_to_buf (buf, size, "  ");
+      append_to_buf (buf, size, "]");
+      break;
+
+    case IUTF_NODE_STRING:
+    case IUTF_NODE_BIGSTRING:
+    case IUTF_NODE_PIPESTRING:
+      append_to_buf (buf, size, "\"%s\"", node->data.str_value ? node->data.str_value : "null");
+      break;
+
+    case IUTF_NODE_INTEGER:
+    case IUTF_NODE_LONG:
+      append_to_buf (buf, size, "%lld", node->data.int_value);
+      break;
+
+    case IUTF_NODE_FLOAT:
+      append_to_buf(buf, size, "%f", node->data.float_value);
+      break;
+
+    case IUTF_NODE_CHARACTER:
+      append_to_buf(buf, size, "'%c'", node->data.char_value);
+      break;
+
+    case IUTF_NODE_BOOLEAN:
+      append_to_buf(buf, size, node->data.bool_value ? "true" : "false");
+      break;
+
+    case IUTF_NODE_NULL:
+      append_to_buf(buf, size, "null");
+      break;
+  }
+}
+
+
 char* debug_print_string (IutfNode* node)
 {
-  return NULL;
+  if (!node) return NULL;
+
+  size_t size = 0;
+  char* buf = malloc(1);
+  if (!buf) return NULL;
+  buf[0] = '\0';
+
+  debug_print_recursive (node, &buf, &size, 0);
+
+  return buf;
 }
