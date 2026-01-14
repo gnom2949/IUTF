@@ -25,7 +25,7 @@
 IutfNode* iutf_new_branch (void);
 
 // add key-value in branch
-void iutf_branch_add (IutfNode   *branch,
+void to_branch (IutfNode   *branch,
                       const char *key,
                       IutfNode   *value);
 
