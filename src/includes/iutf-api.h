@@ -66,4 +66,7 @@ IutfNode* iutf_new_PipeStr (const char* value);
 // Print IUTF to string (for debugging)
 char* debug_print_string (IutfNode* node);
 
+// recursive function-helper
+static void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent);
+
 #endif
