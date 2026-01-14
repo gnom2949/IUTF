@@ -52,7 +52,7 @@ IutfNode* iutf_new_branch (void)
   return node;
 }
 
-void iutf_branch_add (IutfNode* branch, const char* key, IutfNode* value)
+void to_branch (IutfNode* branch, const char* key, IutfNode* value)
 {
   if (!branch || !key || !value) return;
 
