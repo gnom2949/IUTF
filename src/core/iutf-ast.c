@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "../../includes/iutf-ast.h"
+#include "../includes/iutf-ast.h"
 
 IutfNode* iutf_node_new(IutfNodeType type) {
     IutfNode* node = calloc(1, sizeof(IutfNode));

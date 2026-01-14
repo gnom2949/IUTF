@@ -17,8 +17,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "../../includes/iutf-parser.h"
-#include "../../includes/iutf-validator.h"
+#include "../includes/iutf-parser.h"
+#include "../includes/iutf-validator.h"
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {

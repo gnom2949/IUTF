@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "../../includes/iutf-lexer.h"
+#include "../includes/iutf-lexer.h"
 #include <string.h>
 #include <ctype.h>
 

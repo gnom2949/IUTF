@@ -19,7 +19,7 @@
 
 #define _GNU_SOURCE
 
-#include "../../includes/iutf-parser.h"
+#include "../includes/iutf-parser.h"
 #include <assert.h>
 
 static void advance(IutfParser* parser) {
