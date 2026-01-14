@@ -184,7 +184,7 @@ int main()
 
 #### Компиляция
 ```shell
-valac --pkg glib-2.0 main.vala -X -Iincludes -X src/core/iutf-lexer.c -X src/core/iutf-ast.c -X src/core/iutf-parser.c -X src/core/iutf-validator.c
+valac --pkg glib-2.0 main.vala -X -Isrc/includes -X src/core/iutf-lexer.c -X src/core/iutf-ast.c -X src/core/iutf-parser.c -X src/core/iutf-validator.c
 ```
 
 ### Python
@@ -263,4 +263,19 @@ func main()
         fmt.Printf("Token: %s\n", C.GoString(C.iutf_token_type_to_string(token.type)))
     }
 }
-``` 
+```
+
+##IUTF API
+API который появился вместе с версией 0.4 позволяющий удобно создавать структуры
+
+####Пример
+```
+IutfNode* table = iutf_new_branch();
+iutf_branch_add(table, "StatVal", iutf_new_int(42));
+iutf_branch_add(table, "enabled", iutf_new_bool(1));
+
+char* output = debug_print_string(table);
+printf("%s\n", output);
+free(output);
+iutf_node_free(table);
+```
