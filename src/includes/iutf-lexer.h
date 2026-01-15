@@ -15,6 +15,7 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * IUTF lexer header version - 0.5
  */
 
 #ifndef IUTF_LEXER_H
@@ -76,5 +77,7 @@ void iutf_lexer_corrupt (IutfLexer* lexer);
 IutfToken iutf_lexer_next (IutfLexer* lexer);
 
 const char* iutf_token_type_to_string (IutfTokenType type);
+
+void print_error_at (const char* input, int line, int col, const char* msg);
 
 #endif /* IUTF_LEXER_H */

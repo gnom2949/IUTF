@@ -15,6 +15,7 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * IUTF Parser version- 0.5
  */
 
 #define _GNU_SOURCE
@@ -43,7 +44,7 @@ static IutfNode* parse_string(IutfParser* parser) {
 
     node->data.str_value = safe_strndup(parser->current.start, parser->current.length);
     if (!node->data.str_value) {
-      fprintf(stderr, "Failed to allocate string!!\n");
+      fprintf(stderr, "\033[31mFailed to allocate string!!\033[0m\n");
       iutf_node_free (node);
       return NULL;
     }
@@ -307,6 +308,7 @@ static IutfNode* parse_branch(IutfParser* parser) {
 
     if (parser->current.type != IUTF_TOK_BRANCH_CLOSE) {
         fprintf(stderr, "Expected '}', got %s\n", iutf_token_type_to_string(parser->current.type));
+        print_error_at (parser->lexer->input, parser->current.line, parser->current.col, "Expected '}'");
         iutf_node_free(node);
         return NULL;
     }

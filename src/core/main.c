@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 
     char* buffer = malloc(len + 1);
     if (!buffer) {
-        fprintf(stderr, "Out of memory\n");
+        fprintf(stderr, "\033[33mOut of memory!\033[0m\n");
         fclose(file);
         return 1;
     }
@@ -50,25 +50,25 @@ int main(int argc, char *argv[]) {
 
     IutfParser* parser = iutf_parser_new(buffer);
     if (!parser) {
-        fprintf(stderr, "Failed to create parser\n");
+        fprintf(stderr, "\033[31mFailed to create parser\033[0m\n");
         free(buffer);
         return 1;
     }
 
     IutfNode* ast = iutf_parse(parser);
     if (!ast) {
-        fprintf(stderr, "Parse failed\n");
+        fprintf(stderr, "\033[31mParse failed\033[0m\n");
         iutf_parser_free(parser);
         free(buffer);
         return 1;
     }
 
-    printf("Parse successful!\n");
+    printf("\033[32mParse successful!\033[0m\n");
 
     if (iutf_validate(ast)) {
-        printf("Validation passed!\n");
+        printf("\033[32mValidation passed!\033[0m\n");
     } else {
-        printf("Validation failed!\n");
+        printf("\033[31mValidation failed!\033[0m\n");
     }
 
     iutf_node_free(ast);

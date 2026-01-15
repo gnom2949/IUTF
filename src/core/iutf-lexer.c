@@ -15,6 +15,7 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * IUTF lexer version - 0.5
  */
 
 #include "../includes/iutf-lexer.h"
@@ -55,6 +56,56 @@ static inline char current (IutfLexer* lexer)
   return peek(lexer, 0);
 }
 
+static inline int get_ln_start (const char* input, int Lnn/*Line number*/)
+{
+  int curL = 1;
+  const char* p = input;
+  while (*p && curL < Lnn) {
+    if (*p == '\n') {
+      curL++;
+    }
+    p++;
+  }
+  return p - input;
+}
+
+static inline int get_ln_len (const char* input, int start_pos)
+{
+  const char* p = input + start_pos;
+  int len = 0;
+  while (*p && *p != '\n') {
+    p++;
+    len++;
+  }
+  return len;
+}
+
+void print_error_at (const char* input, int ln, int col, const char* msg)
+{
+  fprintf (stderr, "error in str: \033[36m%d\033[0m, col: \033[36m%d\033[0m\n", ln, col);
+
+  int start_pos = get_ln_start (input, ln);
+  int len = get_ln_len (input, start_pos);
+  if (len <= 0) return;
+
+  const char* ln_ptr = input + start_pos;
+  fwrite (ln_ptr, 1, len, stderr);
+  fprintf (stderr, "\n");
+
+  // 1. print space to needed column (without color)
+  for (int i = 1; i < col; i++) {
+    fputc (' ', stderr);
+  }
+
+  // 2. print the red arrows and message (with red color)
+  fputs ("\033[31m", stderr);
+  for (int i = 0; i < (int)strlen (msg); i++) {
+    fputc ('^', stderr);
+  }
+  fputs ("\033[0m\n", stderr);
+}
+
+
 static IutfToken make_token (IutfLexer* lexer, IutfTokenType type, size_t start)
 {
   IutfToken token;
@@ -68,14 +119,14 @@ static IutfToken make_token (IutfLexer* lexer, IutfTokenType type, size_t start)
 
 static IutfToken error_token (IutfLexer* lexer, const char* msg)
 {
-  fprintf (stderr, "IUTF Lexer Error at %d:%d: %s\n", lexer->line, lexer->col, msg);
-  IutfToken token;
-  token.type = IUTF_TOK_ERROR;
-  token.start = NULL;
-  token.length = 0;
-  token.line = lexer->line;
-  token.col = lexer->col;
-  return token;
+  print_error_at (lexer->input, lexer->line, lexer->col, msg);
+  IutfToken tok;
+  tok.type = IUTF_TOK_ERROR;
+  tok.start = NULL;
+  tok.length = 0;
+  tok.line = lexer->line;
+  tok.col = lexer->col;
+  return tok;
 }
 
 static IutfToken read_number (IutfLexer* lexer, size_t start)
@@ -283,3 +334,4 @@ const char* iutf_token_type_to_string (IutfTokenType type)
   default: return "UNKNOWN";
   }
 }
+
