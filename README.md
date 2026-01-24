@@ -1,5 +1,7 @@
 # IUTF
 
+[!IUTF LOGO](../src/imgs/IUTF-LogoSymbolic.png)
+
 **IUTF** is the Int Unified Text Format (IUTF), designed to improve developer convenience and comfort. 
 IUTF also supports the native UTEXT (Unified Text Extension) format.
 Read more in the documentation.
