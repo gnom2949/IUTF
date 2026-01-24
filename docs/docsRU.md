@@ -114,6 +114,8 @@ iutf:init:main { #! инициализация iutf, обязательная в
 
 ## Расширения (UTEXT)
 UTEXT - Unified Text EXTension - формат расширения для iutf с поддержкой пользовательских типов, функций, тегов и локализации.
+
+
 ![UTEXT Logo](../src/imgs/UTEXT.png)
 ![UTEXT SymLogo](../src/imgs/UTEXT-LogoSymbolic.png)
 
