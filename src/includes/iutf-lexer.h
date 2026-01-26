@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF lexer header version - 0.5
+ * IUTF lexer header version - 0.6
  */
 
 #ifndef IUTF_LEXER_H
@@ -28,6 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include "colors.h"
 
 typedef enum {
   IUTF_TOK_EOF,
@@ -79,5 +80,7 @@ IutfToken iutf_lexer_next (IutfLexer* lexer);
 const char* iutf_token_type_to_string (IutfTokenType type);
 
 void print_error_at (const char* input, int line, int col, const char* msg);
+
+char* iutf_find_imported_file (const char* filename);
 
 #endif /* IUTF_LEXER_H */
