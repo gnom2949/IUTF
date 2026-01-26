@@ -15,20 +15,59 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF Parser version- 0.5
+ * IUTF Parser version- 0.6
  */
 
 #define _GNU_SOURCE
 
 #include "../includes/iutf-parser.h"
+#include "../includes/iutf-lexer.h"
+#include "../includes/iutf-import.h"
 #include <assert.h>
 
-static void advance(IutfParser* parser) {
+static void advance(IutfParser* parser)
+{
     parser->current = iutf_lexer_next(parser->lexer);
 }
 
 static IutfNode* parse_value(IutfParser* parser);
 static IutfNode* parse_branch(IutfParser* parser);
+
+IutfNode* iutf_parse_from_file (const char* filename)
+{
+  FILE* fp = fopen (filename, "r");
+  if (!fp) {
+    fprintf (stderr, COL_RED "Cannot open file: " COL_DEF COL_CYAN "%s" COL_DEF "\n", filename);
+    return NULL;
+  }
+
+  fseek (fp, 0, SEEK_END);
+  long len = ftell (fp);
+  fseek (fp, 0, SEEK_SET);
+
+  char* buffer = malloc (len + 1);
+  if (!buffer) {
+    fclose (fp);
+    return NULL;
+  }
+
+  fread (buffer, 1, len, fp);
+  buffer[len] = '\0';
+  fclose (fp);
+
+  IutfParser* parser = iutf_parser_new (buffer);
+  if (!parser) {
+    free (buffer);
+    return NULL;
+  }
+
+  IutfNode* result = iutf_parse (parser);
+
+  iutf_parser_free (parser);
+  free (buffer);
+
+  return result;
+}
 
 static char* safe_strndup(const char* s, size_t n) { // я ебал блять этот ебучий сегфолт
     char* dup = malloc(n + 1);
@@ -38,13 +77,14 @@ static char* safe_strndup(const char* s, size_t n) { // я ебал блять �
     return dup;
 }
 
-static IutfNode* parse_string(IutfParser* parser) {
+static IutfNode* parse_string(IutfParser* parser)
+{
     IutfNode* node = iutf_node_new(IUTF_NODE_STRING);
     if (!node) return NULL;
 
     node->data.str_value = safe_strndup(parser->current.start, parser->current.length);
     if (!node->data.str_value) {
-      fprintf(stderr, "\033[31mFailed to allocate string!!\033[0m\n");
+      fprintf(stderr, COL_RED "Failed to allocate string!!" COL_DEF "/n");
       iutf_node_free (node);
       return NULL;
     }
@@ -79,7 +119,7 @@ static IutfNode* parse_character(IutfParser* parser)
     // Expected format: 'x' or '\x' where x is an escaped character
 
     if (parser->current.length < 3) {
-      fprintf(stderr, "\033[31mInvalid character literal\033[0m\n");
+      fprintf(stderr, COL_RED "Invalid character literal" COL_DEF "/n");
       iutf_node_free (node);
       return NULL;
     }
@@ -124,7 +164,7 @@ static IutfNode* parse_array(IutfParser* parser) {
 
         struct IutfNode** temp = realloc(node->data.array.items, (node->data.array.size + 1) * sizeof(struct IutfNode*));
         if (!temp) {
-            fprintf(stderr, "Out of memory\n");
+            fprintf(stderr, COL_RED "Out of memory" COL_DEF "\n");
             iutf_node_free(item);
             iutf_node_free(node);
             return NULL;
@@ -139,7 +179,7 @@ static IutfNode* parse_array(IutfParser* parser) {
     }
 
     if (parser->current.type != IUTF_TOK_RBRACKET) {
-        fprintf(stderr, "Expected ']', got %s\n", iutf_token_type_to_string(parser->current.type));
+        fprintf(stderr, COL_RED "Expected ']', got " "%s" COL_DEF "\n", iutf_token_type_to_string(parser->current.type));
         iutf_node_free(node);
         return NULL;
     }
@@ -267,6 +307,32 @@ static IutfNode* parse_branch(IutfParser* parser) {
                 return NULL;
             }
             advance(parser);
+
+          if (strncmp (parser->current.start, "@import", 7) == 0) {
+            // skip @import<
+            advance (parser);
+            // read name
+            if (parser->current.type == IUTF_TOK_IDENTIFIER) {
+              char* ext_name = safe_strndup (parser->current.start, parser->current.length);
+              advance (parser); // >
+              advance (parser); // from
+              // Looking for a file
+              char* file_path = iutf_find_imported_file (ext_name);
+              if (file_path) {
+                IutfNode* ext = iutf_parse_from_file (file_path);
+                if (ext) {
+                  // TODO: Объединить типы из ext в текущий контекст
+                  iutf_node_free (ext);
+                } else {
+                  fprintf (stderr, COL_RED "Failed to parse extension: " COL_CYAN "%s" COL_DEF "\n", file_path);
+                }
+                free (file_path);
+              } else {
+                  fprintf(stderr, COL_YLW "Extension '" COL_CYAN "%s" COL_YLW "' not found" COL_DEF "\n", ext_name);
+              }
+              free (ext_name);
+            }
+          }
 
             if (parser->current.type == IUTF_TOK_COLON) {
                 advance(parser);
