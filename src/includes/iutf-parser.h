@@ -15,6 +15,7 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * IUTF Parser Header version v0.6
  */
 
 #ifndef IUTF_PARSER_H
@@ -22,14 +23,16 @@
 
 #include "iutf-lexer.h"
 #include "iutf-ast.h"
+#include "colors.h"
 
 typedef struct {
     IutfLexer* lexer;
     IutfToken current;
 } IutfParser;
 
-IutfParser* iutf_parser_new(const char* input);
-void iutf_parser_free(IutfParser* parser);
-IutfNode* iutf_parse(IutfParser* parser);
+IutfParser* iutf_parser_new (const char* input);
+void iutf_parser_free (IutfParser* parser);
+IutfNode* iutf_parse (IutfParser* parser);
+IutfNode* iutf_parse_from_file (const char* filename);
 
 #endif /* IUTF_PARSER_H */
