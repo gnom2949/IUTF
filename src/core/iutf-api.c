@@ -16,10 +16,13 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#define _GNU_SOURCE
+
 #include "../includes/iutf-api.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 static void append_to_buf (char** buf, size_t* size, const char* format, ...)
 {
