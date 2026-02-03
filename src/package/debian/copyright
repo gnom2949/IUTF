@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: iutf
+Source: https://github.com/gnom2949/IUTF
+
+Files: *
+Copyright: 2026 Aleksandr Silaev
+License: Apache-2.0
