@@ -15,14 +15,18 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * IUTF API Header version 0.2.2
  */
 #ifndef IUTF_API_H
 #define IUTF_API_H
 
 #include "iutf-ast.h"
 
-//create branch
+//create root branch
 IutfNode* iutf_new_branch (void);
+
+// create another branch(not root branch)
+void iutf_add_branch (IutfNode *branch, const char *key, IutfNode *value);
 
 // add key-value in branch
 void to_branch (IutfNode   *branch,
@@ -67,6 +71,6 @@ IutfNode* iutf_new_PipeStr (const char* value);
 char* debug_print_string (IutfNode* node);
 
 // recursive function-helper
-static void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent);
+void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent);
 
 #endif
