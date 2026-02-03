@@ -15,8 +15,9 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * IUTF API SOURCE, version 0.2.2
  */
-#define _GNU_SOURCE
 
 #include "../includes/iutf-api.h"
 #include <stdio.h>
@@ -53,6 +54,21 @@ IutfNode* iutf_new_branch (void)
   node->data.branch.items = NULL;
   node->data.branch.size = 0;
   return node;
+}
+
+void iutf_add_branch (IutfNode   *branch,
+                           const char *key,
+                           IutfNode   *value)
+{
+  if (!branch || !key || !value) return;
+
+  struct IutfNode** temp = realloc (branch->data.branch.items, (branch->data.branch.size + 1) * sizeof (struct IutfNode*));
+  if (!temp) return;
+
+  branch->data.branch.items = temp;
+  branch->data.branch.items[branch->data.branch.size] = value;
+  value->key = strndup (key, 1024);
+  branch->data.branch.size++;
 }
 
 void to_branch (IutfNode* branch, const char* key, IutfNode* value)
@@ -158,7 +174,7 @@ IutfNode* iutf_new_PipeStr (const char* value)
   return node;
 }
 
-static void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent)
+void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent)
 {
   if (!node) return;
 
