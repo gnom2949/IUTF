@@ -18,7 +18,7 @@
  * IUTF Parser version- 0.6
  */
 
-#define _GNU_SOURCE
+//#define _GNU_SOURCE
 
 #include "../includes/iutf-parser.h"
 #include "../includes/iutf-lexer.h"
