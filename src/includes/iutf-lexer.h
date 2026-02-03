@@ -21,7 +21,7 @@
 #ifndef IUTF_LEXER_H
 #define IUTF_LEXER_H
 
-#define _GNU_SOURCE
+//#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
