@@ -15,15 +15,17 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * IUTF Main C SOURCE version 0.6
  */
 
 #include "../includes/iutf-parser.h"
 #include "../includes/iutf-validator.h"
+#include "../includes/colors.h"
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s <file.iutf>\n", argv[0]);
+        fprintf(stderr, COL_RED "Usage: %s <file.iutf>\n", argv[0]);
         return 1;
     }
 
