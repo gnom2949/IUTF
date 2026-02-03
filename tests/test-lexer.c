@@ -7,7 +7,8 @@ static void test_lexer_basic(void) {
 
     IutfToken token = iutf_lexer_next(lexer);
     g_assert_cmpint(token.type, ==, IUTF_TOK_IDENTIFIER);
-    g_assert_cmpstr(token.start, ==, "iutf");
+    g_assert_true (strncmp(token.start, "iutf", token.length) == 0);
+    g_assert_cmpint(token.length, ==, 4);
 
     token = iutf_lexer_next(lexer);
     g_assert_cmpint(token.type, ==, IUTF_TOK_COLON);
