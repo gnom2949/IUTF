@@ -1,7 +1,0 @@
-#!/usr/bin/make -f
-
-%:
-    dh $@ --build-system=meson
-
-override_dh_auto_test:
-    ninja -C build test

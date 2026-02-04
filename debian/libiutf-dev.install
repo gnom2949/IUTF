@@ -1,0 +1,3 @@
+usr/include/iutf
+usr/lib/*/libiutf.so
+usr/lib/*/pkgconfig/iutf.pc
