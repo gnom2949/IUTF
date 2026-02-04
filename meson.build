@@ -33,7 +33,7 @@ iheader = [
 ]
 
 # Library Creation (libiutf.so)
-libiutfC = library('libiutf',
+libiutfC = library('iutf',
 	isource,
 	include_directories: include_directories('src/includes'),
 	c_args: c_args,
@@ -81,5 +81,6 @@ pkg.generate(libiutfC,
   description: 'A IUTF shared library',
   subdirs: 'iutf',
   version: meson.project_version(),
-  extra_cflags: c_args
+  extra_cflags: '-I${includedir}/iutf',
+  libraries_private: '-L${prefix}/lib/iutf',
 )
