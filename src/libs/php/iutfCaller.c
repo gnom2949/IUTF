@@ -20,7 +20,7 @@
  */
 #include <iutf/iutf-api.h>
 #include <iutf/iutf-ast.h>
-#include <piutf.h>
+#include "piutf.h"
 #include <iutf/iutf-lexer.h>
 #include <iutf/iutf-import.h>
 #include <iutf/iutf-parser.h>
