@@ -1,5 +1,5 @@
 #include <glib-2.0/glib.h>
-#include <iutf/iutf-api.h>
+#include "../src/includes/iutf-api.h"
 
 static void test_api_create_branch (void)
 {
