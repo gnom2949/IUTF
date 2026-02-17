@@ -1,5 +1,5 @@
 #include <glib-2.0/glib.h>
-#include <iutf/iutf-lexer.h>
+#include "../src/includes/iutf-lexer.h"
 
 static void test_lexer_basic(void) {
     const char* input = "iutf:init:main { title: \"Hello\" }";

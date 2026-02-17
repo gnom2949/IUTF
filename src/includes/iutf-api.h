@@ -20,6 +20,9 @@
 #ifndef IUTF_API_H
 #define IUTF_API_H
 
+#define IUTF_PRETTY_PRINT (1 << 0)
+#define IUTF_UNESCAPED_UNICODE (1 << 1)
+
 #include "iutf-ast.h"
 
 //create root branch

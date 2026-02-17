@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF Colors version v0.1
+ * IUTF Colors version v0.2
  */
 
 #ifndef IUTF_COLORS_H
@@ -30,6 +30,10 @@
 #define COL_PRPL "\033[35m"
 #define COL_WHITE "\033[37m"
 #define COL_BLACK "\033[30m"
+#define COL_BR_RED "\033[41;1m"
+#define COL_BK_RED "\033[41m"
+#define COL_BOLD "\033[1m"
+#define COL_UNDER "\033[4m"
 #define COL_DEF "\033[0m"
 // Colors mark \\ END
 #endif

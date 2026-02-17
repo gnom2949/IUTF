@@ -1,6 +1,6 @@
 #include <glib-2.0/glib.h>
 #include <glib/gstdio.h>
-#include <iutf/iutf-import.h>
+#include "../src/includes/iutf-import.h"
 
 static void test_import_find_file(void) {
     // create the temporary dir for test

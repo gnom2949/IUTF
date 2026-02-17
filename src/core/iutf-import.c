@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <limits.h>
 
 char* iutf_find_imported_file (const char* filename)
 {

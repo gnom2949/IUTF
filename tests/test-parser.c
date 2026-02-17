@@ -1,5 +1,5 @@
 #include <glib-2.0/glib.h>
-#include <iutf/iutf-parser.h>
+#include "../src/includes/iutf-parser.h"
 
 static void test_parser_basic(void) {
     const char* input = "iutf:init:main { title: \"Hello\" }";

@@ -5,7 +5,7 @@ project('iutf', 'c',
 
 #dependencies
 glib_dep = dependency('glib-2.0', required: true)
-idep = dependency('iutf', required: false)
+#idep = dependency('iutf', required: false)
 
 # Compilation parameters
 c_args = ['-D_GNU_SOURCE']
