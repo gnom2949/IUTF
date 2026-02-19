@@ -13,8 +13,7 @@ if test "$PHP_IUTF" != "no"; then
 		../../core/iutf-import.c \
 		../../core/iutf-parser.c \
 		../../core/iutf-lexer.c \
-		../../core/iutf-validator.c \
-		../../core/main.c,
+		../../core/iutf-validator.c,
 		$ext_shared,, -Wall -Wextra -Wno-unused-parameter)
 
 	# if you needed a something library for test, you can connect with this

@@ -15,66 +15,20 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF Main C SOURCE version 0.6
+ * IUTF Main C SOURCE version 0.6.1
  */
 
 #include "../includes/iutf-parser.h"
 #include "../includes/iutf-validator.h"
+#include "../includes/iutf-ast.h"
+#include "../includes/iutf-api.h"
 #include "../includes/colors.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, COL_RED "Usage: %s <file.iutf>\n", argv[0]);
-        return 1;
-    }
+static IutfNode* find_first_of_type (IutfNode* node, IutfNodeType type)
+{
 
-    FILE* file = fopen(argv[1], "r");
-    if (!file) {
-        perror("Cannot open file");
-        return 1;
-    }
-
-    fseek(file, 0, SEEK_END);
-    long len = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    char* buffer = malloc(len + 1);
-    if (!buffer) {
-        fprintf(stderr, "\033[33mOut of memory!\033[0m\n");
-        fclose(file);
-        return 1;
-    }
-
-    fread(buffer, 1, len, file);
-    buffer[len] = '\0';
-    fclose(file);
-
-    IutfParser* parser = iutf_parser_new(buffer);
-    if (!parser) {
-        fprintf(stderr, "\033[31mFailed to create parser\033[0m\n");
-        free(buffer);
-        return 1;
-    }
-
-    IutfNode* ast = iutf_parse(parser);
-    if (!ast) {
-        fprintf(stderr, "\033[31mParse failed\033[0m\n");
-        iutf_parser_free(parser);
-        free(buffer);
-        return 1;
-    }
-
-    printf("\033[32mParse successful!\033[0m\n");
-
-    if (iutf_validate(ast)) {
-        printf("\033[32mValidation passed!\033[0m\n");
-    } else {
-        printf("\033[31mValidation failed!\033[0m\n");
-    }
-
-    iutf_node_free(ast);
-    iutf_parser_free(parser);
-    free(buffer);
-    return 0;
 }
