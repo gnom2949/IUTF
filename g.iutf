@@ -1,9 +1,0 @@
-iutf:init:main {
-	version: 1.0.0
-	Name: "John"
-	title: "Hello world"
-	Hello: "Hello!"
-	deps::init {
-		@import
-	}
-}
