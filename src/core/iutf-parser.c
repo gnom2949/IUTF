@@ -70,9 +70,10 @@ IutfNode* iutf_parse_from_file (const char* filename)
 }
 
 static char* safe_strndup(const char* s, size_t n) { // я ебал блять этот ебучий сегфолт
-    char* dup = malloc(n + 1);
+    if (!s) return NULL;
+    char* dup = malloc (n + 1);
     if (!dup) return NULL;
-    memcpy(dup, s, n);
+    memcpy (dup, s, n);
     dup[n] = '\0';
     return dup;
 }
