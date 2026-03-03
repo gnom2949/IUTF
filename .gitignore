@@ -8,4 +8,4 @@ debian/libiutf
 debian/libiutf-dev
 debian/libiutf-dev.substvars
 debian/tmp
-debian/libiutf.substvars
+debian/libiutf.substvarstest.iutf

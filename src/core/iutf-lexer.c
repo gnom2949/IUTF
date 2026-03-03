@@ -22,9 +22,37 @@
 #include <string.h>
 #include <ctype.h>
 
+static IutfToken ErrToken (IutfLexer* lex, const char* message)
+{
+    lex->line = lex->line;
+    lex->col = lex->col;
+    lex->message = message;
+
+    IutfToken tok = {0};
+    tok.type = IUTF_TOK_ERROR;
+    tok.line = lex->line;
+    tok.col = lex->col;
+    return tok;
+}
+
+int LexerGetErrLn (IutfLexer* lex)
+{
+  return lex->line;
+}
+
+int LexerGetErrCol (IutfLexer* lex)
+{
+  return lex->col;
+}
+
+const char* LexerGetErrMessage (IutfLexer* lex)
+{
+  return lex->message;
+}
+
 static inline int is_ident_start (char c)
 {
-  return isalpha(c) || c == '_';
+  return isalpha((unsigned char) c) || c == '_';
 }
 
 static inline int is_ident_continue (char c)
@@ -61,9 +89,8 @@ static inline int get_ln_start (const char* input, int Lnn/*Line number*/)
   int curL = 1;
   const char* p = input;
   while (*p && curL < Lnn) {
-    if (*p == '\n') {
-      curL++;
-    }
+    if (*p == '\0') break;
+    if (*p == '\n') curL++;
     p++;
   }
   return p - input;

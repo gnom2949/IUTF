@@ -69,7 +69,7 @@ IutfNode* iutf_parse_from_file (const char* filename)
   return result;
 }
 
-static char* safe_strndup(const char* s, size_t n) { // я ебал блять этот ебучий сегфолт
+static char* sstrndup(const char* s, size_t n) { // я ебал блять этот ебучий сегфолт
     if (!s) return NULL;
     char* dup = malloc (n + 1);
     if (!dup) return NULL;
@@ -83,7 +83,7 @@ static IutfNode* parse_string(IutfParser* parser)
     IutfNode* node = iutf_node_new(IUTF_NODE_STRING);
     if (!node) return NULL;
 
-    node->data.str_value = safe_strndup(parser->current.start, parser->current.length);
+    node->data.str_value = sstrndup(parser->current.start, parser->current.length);
     if (!node->data.str_value) {
       fprintf(stderr, COL_RED "Failed to allocate string!!" COL_DEF "/n");
       iutf_node_free (node);
@@ -221,7 +221,7 @@ static IutfNode* parse_bigstring(IutfParser* parser) {
         return NULL;
     }
 
-    node->data.str_value = safe_strndup(parser->lexer->input + start, end - start);
+    node->data.str_value = sstrndup(parser->lexer->input + start, end - start);
     if (!node->data.str_value) {
         fprintf(stderr, "Failed to allocate BigString\n");
         iutf_node_free(node);
@@ -251,7 +251,7 @@ static IutfNode* parse_pipe_string(IutfParser* parser) {
         return NULL;
     }
 
-    node->data.str_value = safe_strndup(parser->lexer->input + start, parser->lexer->pos - start);
+    node->data.str_value = sstrndup(parser->lexer->input + start, parser->lexer->pos - start);
     if (!node->data.str_value) {
         fprintf(stderr, "Failed to allocate pipe string\n");
         iutf_node_free(node);
@@ -301,7 +301,7 @@ static IutfNode* parse_branch(IutfParser* parser) {
 
     while (parser->current.type != IUTF_TOK_BRANCH_CLOSE && parser->current.type != IUTF_TOK_EOF) {
         if (parser->current.type == IUTF_TOK_IDENTIFIER) {
-            char* key = safe_strndup(parser->current.start, parser->current.length);
+            char* key = sstrndup(parser->current.start, parser->current.length);
             if (!key) {
                 fprintf(stderr, "Failed to allocate key\n");
                 iutf_node_free(node);
@@ -314,7 +314,7 @@ static IutfNode* parse_branch(IutfParser* parser) {
             advance (parser);
             // read name
             if (parser->current.type == IUTF_TOK_IDENTIFIER) {
-              char* ext_name = safe_strndup (parser->current.start, parser->current.length);
+              char* ext_name = sstrndup (parser->current.start, parser->current.length);
               advance (parser); // >
               advance (parser); // from
               // Looking for a file
@@ -357,13 +357,17 @@ static IutfNode* parse_branch(IutfParser* parser) {
                 node->data.branch.items[node->data.branch.size] = value;
                 node->data.branch.size++;
             } else {
-                fprintf(stderr, "Expected ':', got %s\n", iutf_token_type_to_string(parser->current.type));
+                parser->Eline = parser->current.line;
+                parser->Ecol = parser->current.col;
+                parser->Emessage = "Expected ':', got %s", iutf_token_type_to_string (parser->current.type);
                 free(key);
                 iutf_node_free(node);
                 return NULL;
             }
         } else {
-            fprintf(stderr, "Expected identifier, got %s\n", iutf_token_type_to_string(parser->current.type));
+            parser->Eline = parser->current.line;
+            parser->Ecol = parser->current.col;
+            parser->Emessage = "Expected identifier, got %s", iutf_token_type_to_string (parser->current.type);
             iutf_node_free(node);
             return NULL;
         }
@@ -374,8 +378,9 @@ static IutfNode* parse_branch(IutfParser* parser) {
     }
 
     if (parser->current.type != IUTF_TOK_BRANCH_CLOSE) {
-        fprintf(stderr, "Expected '}', got %s\n", iutf_token_type_to_string(parser->current.type));
-        print_error_at (parser->lexer->input, parser->current.line, parser->current.col, "Expected '}'");
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        parser->Emessage = "Expected '}', got %s", iutf_token_type_to_string (parser->current.type);
         iutf_node_free(node);
         return NULL;
     }
@@ -406,39 +411,66 @@ void iutf_parser_free(IutfParser* parser) {
 
 IutfNode* iutf_parse(IutfParser* parser) {
     if (parser->current.type != IUTF_TOK_IDENTIFIER) {
-        fprintf(stderr, "Expected 'iutf', got %s\n", iutf_token_type_to_string(parser->current.type));
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        parser->Emessage = "Expected 'iutf', got %s", iutf_token_type_to_string (parser->current.type);
         return NULL;
     }
 
     advance(parser);
     if (parser->current.type != IUTF_TOK_COLON) {
-        fprintf(stderr, "Expected ':', got %s\n", iutf_token_type_to_string(parser->current.type));
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        parser->Emessage = "Expected ':', got %s", iutf_token_type_to_string (parser->current.type);
         return NULL;
     }
 
     advance(parser);
     if (parser->current.type != IUTF_TOK_IDENTIFIER) {
-        fprintf(stderr, "Expected 'init', got %s\n", iutf_token_type_to_string(parser->current.type));
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        parser->Emessage = "Expected 'init', got %s", iutf_token_type_to_string (parser->current.type);
         return NULL;
     }
 
     advance(parser);
     if (parser->current.type != IUTF_TOK_COLON) {
-        fprintf(stderr, "Expected ':', got %s\n", iutf_token_type_to_string(parser->current.type));
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        parser->Emessage = "Expected ':', got %s", iutf_token_type_to_string (parser->current.type);
         return NULL;
     }
 
     advance(parser);
     if (parser->current.type != IUTF_TOK_IDENTIFIER) {
-        fprintf(stderr, "Expected 'main', got %s\n", iutf_token_type_to_string(parser->current.type));
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        parser->Emessage = "Expected 'main', got %s", iutf_token_type_to_string (parser->current.type);
         return NULL;
     }
 
     advance(parser);
     if (parser->current.type != IUTF_TOK_BRANCH_OPEN) {
-        fprintf(stderr, "Expected '{', got %s\n", iutf_token_type_to_string(parser->current.type));
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        parser->Emessage = "Expected '{', got %s", iutf_token_type_to_string (parser->current.type);
         return NULL;
     }
 
     return parse_branch(parser);
+}
+
+int ParserGetErrLn (IutfParser* parser)
+{
+  return parser->Eline;
+}
+
+int ParserGetErrCol (IutfParser* parser)
+{
+  return parser->Ecol;
+}
+
+const char* ParserGetErrMessage (IutfParser* parser)
+{
+  return parser->Emessage;
 }

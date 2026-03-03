@@ -22,6 +22,10 @@
 
 #include "iutf-ast.h"
 
-int iutf_validate(IutfNode* root);
+int iutf_validate (IutfNode* root);
+
+int ValidGetErrLn (void);
+int ValidGetErrCol (void);
+const char* ValidGetErrMessage (void);
 
 #endif /* IUTF_VALIDATOR_H */

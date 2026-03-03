@@ -28,6 +28,12 @@
 typedef struct {
     IutfLexer* lexer;
     IutfToken current;
+    int Eline;
+    int Ecol;
+    const char* Emessage;
+    int line;
+    int col;
+    const char* message;
 } IutfParser;
 
 IutfParser* iutf_parser_new (const char* input);
@@ -35,4 +41,7 @@ void iutf_parser_free (IutfParser* parser);
 IutfNode* iutf_parse (IutfParser* parser);
 IutfNode* iutf_parse_from_file (const char* filename);
 
+int ParserGetErrLn (IutfParser* IPS);
+int ParserGetErrCol (IutfParser* IPS);
+const char* ParserGetErrMessage (IutfParser* IPS);
 #endif /* IUTF_PARSER_H */

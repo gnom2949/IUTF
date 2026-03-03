@@ -62,7 +62,19 @@ typedef struct IutfNode {
     } data;
 } IutfNode;
 
+typedef struct {
+  char** names;
+  size_t count;
+  size_t capacity;
+} IutfBrList;
+
+IutfBrList* iutf_branch_list_new (void);
+void iutf_branch_list_free (IutfBrList* list);
+void iutf_branch_list_add (IutfBrList* list, const char* name);
+void iutf_collect_branches (IutfNode* node, IutfBrList* list);
+int iutf_has_branch (IutfBrList *list, const char *name);
+IutfBrList iutf_branch_get_All (IutfNode* root);
 IutfNode* iutf_node_new(IutfNodeType type);
 void iutf_node_free(IutfNode* node);
 
-#endif /* IUTF_AST_H */
+#endif

@@ -21,6 +21,10 @@
 #include "../includes/iutf-validator.h"
 #include <stdio.h>
 
+static int veln = 0; // validator error line
+static int vecol = 0; // validator error column
+static const char* vemsg = NULL; // validator error message
+
 int iutf_validate(IutfNode* root) {
     if (!root) {
         fprintf(stderr, "\033[31mRoot node is NULL!!\033[0m\n");

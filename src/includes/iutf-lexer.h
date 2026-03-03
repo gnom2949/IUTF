@@ -63,14 +63,19 @@ typedef struct {
   size_t length;
   int line;
   int col;
+  const char* message;
 } IutfToken;
 
 typedef struct {
   const char* input;
   size_t pos;
   size_t len;
+  int Eline;
+  int Ecol;
+  const char* Emessage;
   int line;
   int col;
+  const char* message;
 } IutfLexer;
 
 IutfLexer* iutf_lexer_new (const char* input);
@@ -83,4 +88,8 @@ void print_error_at (const char* input, int line, int col, const char* msg);
 
 char* iutf_find_imported_file (const char* filename);
 
+static IutfToken ErrToken (IutfLexer* lex, const char* message);
+int LexerGetErrLn (IutfLexer* lex);
+int LexerGetErrCol (IutfLexer* lex);
+const char* LexerGetErrMessage (IutfLexer* lex);
 #endif /* IUTF_LEXER_H */

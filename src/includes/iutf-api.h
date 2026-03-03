@@ -20,10 +20,18 @@
 #ifndef IUTF_API_H
 #define IUTF_API_H
 
+#define MAX_BUF_SIZE 4096
+#define MIN_BUF_SIZE 1024
 #define IUTF_PRETTY_PRINT (1 << 0)
 #define IUTF_UNESCAPED_UNICODE (1 << 1)
 
 #include "iutf-ast.h"
+
+typedef struct {
+  char* data;
+  size_t size;
+  size_t capacity;
+} IutfApiBuf;
 
 //create root branch
 IutfNode* iutf_new_branch (void);
@@ -73,7 +81,18 @@ IutfNode* iutf_new_PipeStr (const char* value);
 // Print IUTF to string (for debugging)
 char* debug_print_string (IutfNode* node);
 
+// do from IUTF to JSON
+char* iutfToJSON (IutfNode* node);
 // recursive function-helper
 void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent);
 
+// init buffer
+void bufInit (IutfApiBuf* buf);
+
+// print to buffer (dynamic array)
+void bufPrint (IutfApiBuf* buf, const char* fmt, ...);
+
+int ApiGetLastErrLn (void);
+int ApiGetLastErrCol (void);
+const char* ApiGetLastErrMessage (void);
 #endif

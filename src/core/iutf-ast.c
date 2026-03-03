@@ -27,12 +27,102 @@ IutfNode* iutf_node_new(IutfNodeType type) {
     return node;
 }
 
-void iutf_node_free(IutfNode* node) {
+IutfBrList* iutf_branch_list_new (void)
+{
+  IutfBrList* list = malloc (sizeof(IutfBrList));
+  if (!list) return NULL;
+
+  list->names = NULL;
+  list->count = 0;
+  list->capacity = 0;
+
+  return list;
+}
+
+void iutf_branch_list_free (IutfBrList* list)
+{
+  if (list) {
+    if (list->names) {
+      for (size_t i = 0; i < list->count; i++) {
+        free (list->names[i]);
+      }
+      free (list->names);
+    }
+    free (list);
+  }
+}
+
+void iutf_branch_list_add (IutfBrList* list, const char* name)
+{
+  if (!list || !name) return;
+
+  if (list->count >= list->capacity) {
+    size_t nCap = list->capacity == 0 ? 4 : list->capacity * 2;
+    char** nNames = realloc (list->names, nCap * sizeof (char*));
+    if (!nNames) return;
+
+    list->names = nNames;
+    list->capacity = nCap;
+  }
+
+  list->names[list->count] = strdup (name);
+  if (list->names[list->count]) {
+    list->count++;
+  }
+}
+
+void iutf_collect_branches (IutfNode* node, IutfBrList* list)
+{
+  if (!node || !list) return;
+
+  if (node->type == IUTF_NODE_BRANCH && node->key) {
+    iutf_branch_list_add (list, node->key);
+  }
+
+  switch (node->type)
+  {
+    case IUTF_NODE_BRANCH:
+      for (size_t i = 0; i < node->data.branch.size; i++) {
+        iutf_collect_branches (node->data.branch.items[i], list);
+      }
+      break;
+    case IUTF_NODE_ARRAY:
+      for (size_t i = 0; i < node->data.array.size; i++) {
+        iutf_collect_branches (node->data.array.items[i], list);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+int iutf_has_branch(IutfBrList* list, const char* name) {
+    if (!list || !name) return 0;
+
+    for (size_t i = 0; i < list->count; i++) {
+        if (strcmp(list->names[i], name) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+IutfBrList* iutf_get_all_branches(IutfNode* root) {
+    IutfBrList* list = iutf_branch_list_new();
+    if (!list) return NULL;
+
+    iutf_collect_branches(root, list);
+    return list;
+}
+
+void iutf_node_free(IutfNode* node)
+{
     if (!node) return;
 
     free(node->key);
 
-    switch (node->type) {
+    switch (node->type)
+    {
         case IUTF_NODE_STRING:
         case IUTF_NODE_BIGSTRING:
         case IUTF_NODE_PIPESTRING:
