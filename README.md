@@ -6,8 +6,6 @@
 IUTF also supports the native UTEXT (Unified Text Extension) format.
 Read more in the documentation.
 
-![IUTF LOGO](../src/imgs/IUTFLogo.png)
-
 ## Features
 - Full support for IUTF syntax: branches, strings, BigString, |...|, comments.
 - Line and column tracking.
@@ -18,6 +16,7 @@ Read more in the documentation.
 ## Build
 
 ```bash
-make
-./example
+meson setup build
+ninja -C build
+sudo meson install -C build
 ```
