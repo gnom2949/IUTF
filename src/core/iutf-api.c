@@ -20,10 +20,12 @@
  */
 
 #include "../includes/iutf-api.h"
+#include "IntMemoryManager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 static int leln = 0;
 static int lecol = 0;
@@ -32,7 +34,7 @@ static const char* lemsg = NULL;
 void bufInit (IutfApiBuf* buf)
 {
   buf->capacity = 1024;
-  buf->data = malloc (buf->capacity);
+  buf->data = MemoryAllocate (buf->capacity);
   buf->size = 0;
   buf->data[0] = '\0';
 }
@@ -57,7 +59,7 @@ void bufPrint (IutfApiBuf* buf, const char* fmt, ...)
     if (new_capacity < buf->size + len + 1) {
       new_capacity = buf->size + len + 1;
     }
-    char* new_data = realloc(buf->data, new_capacity);
+    char* new_data = MemoryReAllocate (buf->data, new_capacity);
     if (!new_data) {
       va_end(args);
       return;
@@ -85,7 +87,7 @@ static void append_to_buf (char** buf, size_t* size, const char* format, ...)
 
   if (len < 0) return;
 
-  char* new_buf = realloc (*buf, *size + len + 1);
+  char* new_buf = MemoryReAllocate (*buf, *size + len + 1);
   if (!new_buf) return;
 
   *buf = new_buf;
@@ -109,7 +111,7 @@ void iutf_add_branch (IutfNode   *branch,
 {
   if (!branch || !key || !value) return;
 
-  struct IutfNode** temp = realloc (branch->data.branch.items, (branch->data.branch.size + 1) * sizeof (struct IutfNode*));
+  struct IutfNode** temp = MemoryReAllocate (branch->data.branch.items, (branch->data.branch.size + 1) * sizeof (struct IutfNode*));
   if (!temp) return;
 
   branch->data.branch.items = temp;
@@ -122,7 +124,7 @@ void to_branch (IutfNode* branch, const char* key, IutfNode* value)
 {
   if (!branch || !key || !value) return;
 
-  struct IutfNode** temp = realloc (branch->data.branch.items, (branch->data.branch.size + 1) * sizeof (struct IutfNode*));
+  struct IutfNode** temp = MemoryReAllocate (branch->data.branch.items, (branch->data.branch.size + 1) * sizeof (struct IutfNode*));
   if (!temp) return;
 
   branch->data.branch.items = temp;
@@ -197,7 +199,7 @@ void add_to_array (IutfNode* array, IutfNode* item)
 {
   if (!array || !item) return;
 
-  struct IutfNode** temp = realloc (array->data.array.items, (array->data.array.size + 1) * sizeof(struct IutfNode*));
+  struct IutfNode** temp = MemoryReAllocate (array->data.array.items, (array->data.array.size + 1) * sizeof(struct IutfNode*));
   if (!temp) return;
 
   array->data.array.items = temp;
@@ -287,7 +289,7 @@ char* debug_print_string (IutfNode* node)
   if (!node) return NULL;
 
   size_t size = 0;
-  char* buf = malloc(1);
+  char* buf = MemoryAllocate (1);
   if (!buf) return NULL;
   buf[0] = '\0';
 
@@ -378,7 +380,7 @@ char* iutfToJSON (IutfNode* node)
   if (!node) return NULL;
 
   size_t size = 0;
-  char* buf = malloc (1);
+  char* buf = MemoryAllocate (1);
   if (!buf) return NULL;
   buf[0] = '\0';
 
@@ -396,7 +398,64 @@ int ApiGetLastErrCol (void)
 {
   return lecol;
 }
-const char* ApiGetLastErrMsg (void)
+const char* ApiGetLastErrMessage (void)
 {
   return lemsg;
+}
+
+void iutf_free_string (char *ptr)
+{
+  if (!ptr) return;
+  IntMemoryRange *block = (IntMemoryRange *)ptr - 1;
+  if (block->hex == IMM_HEX)
+  {
+    cleanbit (ptr);
+  } else {
+    free (ptr);
+  }
+}
+
+static void jbuf_init (JBuf *buf)
+{
+  buf->capacity = MIN_BUF_SIZE;
+  buf->data = MemoryAllocate (buf->capacity);
+  buf->size = 0;
+  if (buf->data) buf->data[0] = '\0';
+}
+
+static void jbuf_free (JBuf *buf)
+{
+  if (buf && buf->data)
+  {
+    cleanbit (buf->data);
+    buf->data = NULL;
+  }
+}
+
+static bool jbuf_ensure (JBuf   *buf, size_t  extra)
+{
+  if (buf->size + extra + 1 > buf->capacity)
+  {
+    size_t new_cap = buf->capacity * 2;
+    while (new_cap < buf->size + extra + 1) new_cap *= 2;
+    char *ndata = MemoryReAllocate (buf->data, new_cap);
+
+    if (!ndata) return false;
+    buf->data = ndata;
+    buf->capacity = new_cap;
+  }
+  return true;
+}
+
+static void jbuf_append (JBuf *buf, const char *str, size_t len)
+{
+  if (!jbuf_ensure (buf, len)) return;
+  memcpy (buf->data + buf->size, str, len);
+  buf->size += len;
+  buf->data[buf->size] = '\0';
+}
+
+static void jbuf_append_char (JBuf *buf, char  value)
+{
+  jbuf_append (buf, &value, 1);
 }
