@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://codeberg.org/gnom2949/IntMemoryManager.git
+revision = head
+depth = 1
