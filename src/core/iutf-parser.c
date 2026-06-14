@@ -15,15 +15,14 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF Parser version- 0.6
+ * IUTF Parser version 0.6.1
  */
 
 //#define _GNU_SOURCE
 
-#include "../includes/iutf-parser.h"
-#include "../includes/iutf-lexer.h"
-#include "../includes/iutf-import.h"
+#include "iutf.h"
 #include <assert.h>
+static char err_buf[512];
 
 static void advance(IutfParser* parser)
 {
@@ -33,7 +32,7 @@ static void advance(IutfParser* parser)
 static IutfNode* parse_value(IutfParser* parser);
 static IutfNode* parse_branch(IutfParser* parser);
 
-IutfNode* iutf_parse_from_file (const char* filename)
+IutfNode* iutf_parse_from_file (ustring filename)
 {
   FILE* fp = fopen (filename, "r");
   if (!fp) {
@@ -45,7 +44,7 @@ IutfNode* iutf_parse_from_file (const char* filename)
   long len = ftell (fp);
   fseek (fp, 0, SEEK_SET);
 
-  char* buffer = malloc (len + 1);
+  char* buffer = MemoryAllocate (len + 1);
   if (!buffer) {
     fclose (fp);
     return NULL;
@@ -57,21 +56,21 @@ IutfNode* iutf_parse_from_file (const char* filename)
 
   IutfParser* parser = iutf_parser_new (buffer);
   if (!parser) {
-    free (buffer);
+    cleanbit (buffer);
     return NULL;
   }
 
   IutfNode* result = iutf_parse (parser);
 
   iutf_parser_free (parser);
-  free (buffer);
+  cleanbit (buffer);
 
   return result;
 }
 
 static char* sstrndup(const char* s, size_t n) { // я ебал блять этот ебучий сегфолт
     if (!s) return NULL;
-    char* dup = malloc (n + 1);
+    char* dup = MemoryAllocate (n + 1);
     if (!dup) return NULL;
     memcpy (dup, s, n);
     dup[n] = '\0';
@@ -85,7 +84,7 @@ static IutfNode* parse_string(IutfParser* parser)
 
     node->data.str_value = sstrndup(parser->current.start, parser->current.length);
     if (!node->data.str_value) {
-      fprintf(stderr, COL_RED "Failed to allocate string!!" COL_DEF "/n");
+      fprintf(stderr, COL_RED "Failed to allocate string!!" COL_DEF "\n");
       iutf_node_free (node);
       return NULL;
     }
@@ -120,7 +119,7 @@ static IutfNode* parse_character(IutfParser* parser)
     // Expected format: 'x' or '\x' where x is an escaped character
 
     if (parser->current.length < 3) {
-      fprintf(stderr, COL_RED "Invalid character literal" COL_DEF "/n");
+      fprintf(stderr, COL_RED "Invalid character literal" COL_DEF "\n");
       iutf_node_free (node);
       return NULL;
     }
@@ -163,7 +162,7 @@ static IutfNode* parse_array(IutfParser* parser) {
         IutfNode* item = parse_value(parser);
         if (!item) break;
 
-        struct IutfNode** temp = realloc(node->data.array.items, (node->data.array.size + 1) * sizeof(struct IutfNode*));
+        struct IutfNode** temp = MemoryReAllocate (node->data.array.items, (node->data.array.size + 1) * sizeof(struct IutfNode*));
         if (!temp) {
             fprintf(stderr, COL_RED "Out of memory" COL_DEF "\n");
             iutf_node_free(item);
@@ -262,7 +261,125 @@ static IutfNode* parse_pipe_string(IutfParser* parser) {
     return node;
 }
 
-static IutfNode* parse_value(IutfParser* parser) {
+Only int parse_var (IutfParser *parser, int scope)
+{
+    advance(parser);
+    if (parser->current.type != IUTF_TOK_IDENTIFIER)
+    {
+        snprintf(err_buf, sizeof(err_buf), "Expected variable name after 'var', got %s", iutf_token_type_to_string(parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        return 0; 
+    }
+
+    string name = sstrndup (parser->current.start, parser->current.length);
+    if (!name) return 0;
+    advance (parser);
+
+    if (parser->current.type != IUTF_TOK_COLON)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected ':' after var name, got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        cleanbit (name);
+        return 0;
+    }
+    advance(parser);
+
+    IutfNode *value = parse_value(parser);
+    if (!value)
+    {
+        cleanbit(name);
+        return 0;
+    }
+
+    IutfVarTable *tab = (scope == 0) ? parser->global_vars : parser->local_vars;
+    if (!tab)
+    {
+        fprintf (stderr, "parser: var table is NULL (scope=%d)\n", scope);
+        cleanbit(name);
+        iutf_node_free(value);
+        return 0;
+    }
+
+    if (!iutf_var_tab_set (tab, name, value))
+    {
+        fprintf(stderr, "parser: failed to store var '%s'\n", name);
+        cleanbit(name);
+        iutf_node_free(value);
+        return 0;
+    }
+
+    cleanbit (name);
+    return 1;
+}
+
+Only IutfNode *parse_ref (IutfParser *parser)
+{
+    ustring start = parser->current.start;
+    size length = parser->current.length;
+
+    if (length == 9 && strncmp (start, "@onlythis", 9) == 0)
+    {
+        advance (parser);
+
+        IutfNode *inner = parse_value(parser);
+        if (!inner) return null;
+
+        IutfNode *node = iutf_node_new (IUTF_NODE_ONLYTHIS);
+        if (!node) { iutf_node_free(inner); return null; }
+        node->data.onlythis_value = inner;
+        return node;
+    }
+
+    IutfRefScope scope;
+    string name = null;
+    
+    if (!iutf_parse_ref_string(start, length, &scope, &name))
+    {
+        snprintf (err_buf, sizeof(err_buf), "Invalid reference: '%.*s'", (int)length, start);
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        return null;
+    }
+
+    advance (parser);
+
+    if (!name && parser->current.type == IUTF_TOK_DOT)
+    {
+        advance(parser);
+        if (parser->current.type != IUTF_TOK_IDENTIFIER)
+        {
+            snprintf(err_buf, sizeof(err_buf), "Expected name after '.', got %s", iutf_token_type_to_string(parser->current.type));
+            parser->Emessage = err_buf;
+            parser->Eline = parser->current.line;
+            parser->Ecol = parser->current.col;
+            return null;
+        }
+        name = sstrndup(parser->current.start, parser->current.length);
+        advance(parser);
+    } else if (name) {
+
+    } else
+    {
+        snprintf (err_buf, sizeof(err_buf), "Expected '.' after scope in reference");
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol = parser->current.col;
+        return null;
+    }
+
+    IutfNode *node = iutf_node_new(IUTF_NODE_REF);
+    if (!node) { cleanbit(name); return null; }
+    node->data.ref.scope = scope;
+    node->data.ref.name = name;
+    return node;
+}
+
+Only IutfNode* parse_value(IutfParser* parser) {
     switch (parser->current.type) {
         case IUTF_TOK_STRING:
             return parse_string(parser);
@@ -286,115 +403,346 @@ static IutfNode* parse_value(IutfParser* parser) {
             return parse_pipe_string(parser);
         case IUTF_TOK_BRANCH_OPEN:
             return parse_branch(parser);
+        case IUTF_TOK_DIRECTIVE:
+            return parse_ref(parser);
+        case IUTF_TOK_ARRAYOF:
+            advance(parser);
+            if (parser->current.type != IUTF_TOK_COLON) 
+            {
+                fprintf (stderr, "Parser: Expected ':' at %d", parser->current.line);
+                return null;
+            }
+            advance(parser);
+            if (parser->current.type == IUTF_TOK_NULL) {
+                advance(parser);
+                return iutf_node_new(IUTF_NODE_NULL);
+            }
+            if (parser->current.type != IUTF_TOK_LBRACKET) { fprintf (stderr, "Parser: Expected '[' at %d", parser->current.line); return null; }
+            return parse_array(parser);
         default:
             fprintf(stderr, "Unexpected token: %s\n", iutf_token_type_to_string(parser->current.type));
             return NULL;
     }
 }
 
-static IutfNode* parse_branch(IutfParser* parser) {
+IutfNode *iutf_parse_utext(IutfParser *parser)
+{
+    if (parser->current.type != IUTF_TOK_UTEXT)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected 'utext', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        return null;
+    }
+    advance(parser);
+
+    if (parser->current.type != IUTF_TOK_DOUBLE_COLON)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected '::', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        return null;
+    }
+    advance(parser);
+
+    if (parser->current.type != IUTF_TOK_IDENTIFIER || strncmp (parser->current.start, "setup", 5) != 0)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected 'setup' after '::', got %s",
+                  iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        return null;
+    }
+    advance(parser);
+
+    if (parser->current.type != IUTF_TOK_BRANCH_OPEN)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected '{' after 'setup', got %s",
+                  iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        return null;
+    }
+    advance(parser);
+
+    if (parser->current.type != IUTF_TOK_IDENTIFIER)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected extension name, got %s",
+                  iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        return null;
+    }
+    
+    string ext_name = sstrndup(parser->current.start, parser->current.length);
+    if (!ext_name) return null;
+    advance(parser);
+
+    if (parser->current.type != IUTF_TOK_BRANCH_OPEN)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected '{' after '%s', got %s", ext_name,
+                  iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        cleanbit(ext_name);
+        return null;
+    }
+
+    IutfNode *body = parse_branch(parser);
+    if (!body) { cleanbit(ext_name); return null; }
+
+    if (parser->current.type != IUTF_TOK_BRANCH_CLOSE)
+    {
+        snprintf (err_buf, sizeof (err_buf), "Expected '}' to close branch 'setup', got %s",
+                  iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
+        parser->Eline = parser->current.line;
+        parser->Ecol  = parser->current.col;
+        cleanbit(ext_name);
+        return null;
+    }
+    advance (parser);
+
+    IutfNode *node = iutf_node_new(IUTF_NODE_UTEXT_SETUP);
+    if (!node)
+    {
+        cleanbit(ext_name);
+        iutf_node_free(body);
+        return null;
+    }
+
+    node->data.utext.ext_name = ext_name;
+    node->data.utext.items = body->data.branch.items;
+    node->data.utext.size = body->data.branch.size;
+    
+    body->data.branch.items = null;
+    body->data.branch.size = 0;
+    iutf_node_free(body);
+
+    return node;
+}
+
+Only IutfNode* parse_branch(IutfParser* parser) {
     IutfNode* node = iutf_node_new(IUTF_NODE_BRANCH);
     if (!node) return NULL;
-
 
     advance(parser); // skip '{'
 
     while (parser->current.type != IUTF_TOK_BRANCH_CLOSE && parser->current.type != IUTF_TOK_EOF) {
-        if (parser->current.type == IUTF_TOK_IDENTIFIER) {
-            char* key = sstrndup(parser->current.start, parser->current.length);
-            if (!key) {
-                fprintf(stderr, "Failed to allocate key\n");
-                iutf_node_free(node);
-                return NULL;
-            }
-            advance(parser);
 
-          if (strncmp (parser->current.start, "@import", 7) == 0) {
-            // skip @import<
-            advance (parser);
-            // read name
-            if (parser->current.type == IUTF_TOK_IDENTIFIER) {
-              char* ext_name = sstrndup (parser->current.start, parser->current.length);
-              advance (parser); // >
-              advance (parser); // from
-              // Looking for a file
-              char* file_path = iutf_find_imported_file (ext_name);
-              if (file_path) {
-                IutfNode* ext = iutf_parse_from_file (file_path);
-                if (ext) {
-                  // TODO: Объединить типы из ext в текущий контекст
-                  iutf_node_free (ext);
-                } else {
-                  fprintf (stderr, COL_RED "Failed to parse extension: " COL_CYAN "%s" COL_DEF "\n", file_path);
-                }
-                free (file_path);
-              } else {
-                  fprintf(stderr, COL_YLW "Extension '" COL_CYAN "%s" COL_YLW "' not found" COL_DEF "\n", ext_name);
-              }
-              free (ext_name);
-            }
-          }
-
-            if (parser->current.type == IUTF_TOK_COLON) {
-                advance(parser);
-                IutfNode* value = parse_value(parser);
-                if (!value) {
-                    free(key);
-                    iutf_node_free(node);
-                    return NULL;
-                }
-                value->key = key;
-
-                struct IutfNode** temp = realloc(node->data.branch.items, (node->data.branch.size + 1) * sizeof(struct IutfNode*));
-                if (!temp) {
-                    fprintf(stderr, "Out of memory\n");
-                    free(key);
-                    iutf_node_free(value);
-                    iutf_node_free(node);
-                    return NULL;
-                }
-                node->data.branch.items = temp;
-                node->data.branch.items[node->data.branch.size] = value;
-                node->data.branch.size++;
-            } else {
-                parser->Eline = parser->current.line;
-                parser->Ecol = parser->current.col;
-                parser->Emessage = "Expected ':', got %s", iutf_token_type_to_string (parser->current.type);
-                free(key);
-                iutf_node_free(node);
-                return NULL;
-            }
-        } else {
+        // === waiting identifier (key) ===
+        if (parser->current.type != IUTF_TOK_IDENTIFIER &&
+            parser->current.type != IUTF_TOK_DIRECTIVE &&
+            parser->current.type != IUTF_TOK_ARRAYOF) {
             parser->Eline = parser->current.line;
             parser->Ecol = parser->current.col;
-            parser->Emessage = "Expected identifier, got %s", iutf_token_type_to_string (parser->current.type);
+            parser->Emessage = "Expected identifier, got %s";
             iutf_node_free(node);
             return NULL;
         }
 
+        // var declaration
+        if (parser->current.type == IUTF_TOK_VAR)
+        {
+            int scope = (parser->global_vars && parser->local_vars && parser->local_vars->count == 0) ? 0 : 1;
+            if (!parse_var(parser, scope)) { iutf_node_free(node); return null; }
+            continue;
+        }
+
+        // reading key
+        char* key = sstrndup(parser->current.start, parser->current.length);
+        if (!key) {
+            fprintf(stderr, "Failed to allocate key\n");
+            iutf_node_free(node);
+            return NULL;
+        }
+        advance(parser);
+
+        // === Processing @import ===
+        if (strncmp(key, "@import", 7) == 0) {
+            cleanbit(key);  // freeing key
+
+            char* ext_name = NULL;
+
+            // Support: @import name or @import "name"
+            if (parser->current.type == IUTF_TOK_IDENTIFIER) {
+                ext_name = sstrndup(parser->current.start, parser->current.length);
+                advance(parser);
+            }
+            else if (parser->current.type == IUTF_TOK_STRING) {
+                if (parser->current.length >= 2) {
+                    ext_name = sstrndup(parser->current.start + 1, parser->current.length - 2);
+                }
+                advance(parser);
+            }
+            else {
+                parser->Eline = parser->current.line;
+                parser->Ecol = parser->current.col;
+                parser->Emessage = "Expected package name after @import";
+                iutf_node_free(node);
+                return NULL;
+            }
+
+            // Skipping 'from <source>' if exists
+            if (parser->current.type == IUTF_TOK_IDENTIFIER && strncmp(parser->current.start, "from", 4) == 0) {
+                advance(parser);  // skip 'from'
+                if (parser->current.type == IUTF_TOK_IDENTIFIER) {
+                    advance(parser);  // skip source (local/sys/global)
+                }
+            }
+
+            // Search and load extension
+            char* file_path = iutf_find_imported_file(ext_name);
+            if (file_path) {
+                IutfNode* ext = iutf_parse_from_file(file_path);
+                if (ext)
+                {
+                  for (size_t i = 0; i < ext->data.branch.size; i++)
+                  {
+                    IutfNode *item = ext->data.branch.items[i];
+                    iutf_add_branch (node, item->key, item);
+                  }
+
+                  cleanbit (ext->data.branch.items);
+                  cleanbit (ext);
+                }
+                cleanbit(file_path);
+            } else {
+                fprintf(stderr, COL_YLW "Extension '" COL_CYAN "%s" COL_YLW "' not found\n" COL_DEF, ext_name);
+            }
+
+            cleanbit(ext_name);
+            fprintf (stderr, "[DEBUG] after @import: token=%s", iutf_token_type_to_string (parser->current.type));
+            continue;
+        }
+
+        // === colon processing ===
+        if (parser->current.type != IUTF_TOK_COLON) {
+            parser->Eline = parser->current.line;
+            parser->Ecol = parser->current.col;
+            snprintf(err_buf, sizeof(err_buf), "Expected ':', got %s", iutf_token_type_to_string(parser->current.type));
+            parser->Emessage = err_buf;
+            cleanbit(key);
+            iutf_node_free(node);
+            return NULL;
+        }
+        advance(parser);  // skip ':'
+
+        // === if: key:identifier { ... } ===
+        // for example: deps:init { @import "x" }
+        if (parser->current.type == IUTF_TOK_IDENTIFIER) {
+            char* subkey = sstrndup(parser->current.start, parser->current.length);
+            if (!subkey) {
+                cleanbit(key);
+                iutf_node_free(node);
+                return NULL;
+            }
+            advance(parser);  // skip identifier
+
+            if (parser->current.type == IUTF_TOK_BRANCH_OPEN) {
+                //advance(parser);  // skip '{'
+
+                IutfNode* inner = parse_branch(parser);
+                if (!inner) {
+                    cleanbit(key);
+                    cleanbit(subkey);
+                    iutf_node_free(node);
+                    return NULL;
+                }
+
+                // Creating wrap: { "init": { inner } }
+                IutfNode* wrapper = iutf_new_branch();
+                if (!wrapper) {
+                    cleanbit(key);
+                    cleanbit(subkey);
+                    iutf_node_free(inner);
+                    iutf_node_free(node);
+                    return NULL;
+                }
+
+                iutf_add_branch(wrapper, subkey, inner);
+                cleanbit(subkey);
+
+                // Adding in main branch: { "deps": { wrapper } }
+                iutf_add_branch(node, key, wrapper);
+                cleanbit(key);
+                continue;
+            } else {
+                // identifier not followed by { - error
+                cleanbit(subkey);
+                parser->Eline = parser->current.line;
+                parser->Ecol = parser->current.col;
+                parser->Emessage = "Expected '{' after identifier";
+                cleanbit(key);
+                iutf_node_free(node);
+                return NULL;
+            }
+        }
+
+        // === Default: key: value ===
+        // parse_value proceed: strings, nums, branches, arrays, null etc.
+        IutfNode* value = parse_value(parser);
+        if (!value) {
+            cleanbit(key);
+            iutf_node_free(node);
+            return NULL;
+        }
+
+        // Adding value in branch
+        struct IutfNode** temp = MemoryReAllocate(
+            node->data.branch.items,
+            (node->data.branch.size + 1) * sizeof(struct IutfNode*)
+        );
+        if (!temp) {
+            fprintf(stderr, "Out of memory\n");
+            cleanbit(key);
+            iutf_node_free(value);
+            iutf_node_free(node);
+            return NULL;
+        }
+        node->data.branch.items = temp;
+        node->data.branch.items[node->data.branch.size] = value;
+        value->key = key;
+        node->data.branch.size++;
+        //cleanbit(key) Trash!
+
+        // Skip comma if it exist
         if (parser->current.type == IUTF_TOK_COMMA) {
             advance(parser);
         }
     }
 
+    // Check on closing branch
     if (parser->current.type != IUTF_TOK_BRANCH_CLOSE) {
         parser->Eline = parser->current.line;
         parser->Ecol = parser->current.col;
-        parser->Emessage = "Expected '}', got %s", iutf_token_type_to_string (parser->current.type);
+        snprintf(err_buf, sizeof(err_buf), "Expected '}', got %s", iutf_token_type_to_string(parser->current.type));
+        parser->Emessage = err_buf;
         iutf_node_free(node);
         return NULL;
     }
+
     advance(parser); // skip '}'
     return node;
 }
 
-IutfParser* iutf_parser_new(const char* input) {
-    IutfParser* parser = malloc(sizeof(IutfParser));
+IutfParser* iutf_parser_new(ustring input) {
+    IutfParser* parser = MemoryAllocate (sizeof(IutfParser));
     if (!parser) return NULL;
 
     parser->lexer = iutf_lexer_new(input);
+    parser->global_vars = iutf_var_tab_new();
+    parser->local_vars = iutf_var_tab_new();
+    parser->shared_vars = iutf_var_tab_new();
+    parser->is_utext = 0;
     if (!parser->lexer) {
-        free(parser);
+        cleanbit (parser);
         return NULL;
     }
 
@@ -405,15 +753,26 @@ IutfParser* iutf_parser_new(const char* input) {
 void iutf_parser_free(IutfParser* parser) {
     if (parser) {
         iutf_lexer_corrupt (parser->lexer);
-        free(parser);
+        iutf_var_tab_free(parser->global_vars);
+        iutf_var_tab_free(parser->shared_vars);
+        iutf_var_tab_free(parser->local_vars);
+        cleanbit (parser);
     }
 }
 
-IutfNode* iutf_parse(IutfParser* parser) {
+IutfNode* iutf_parse(IutfParser* parser) 
+{
+    if (parser->current.type == IUTF_TOK_UTEXT)
+    {
+        parser->is_utext = 1;
+        return iutf_parse_utext(parser);
+    }
+
     if (parser->current.type != IUTF_TOK_IDENTIFIER) {
         parser->Eline = parser->current.line;
         parser->Ecol = parser->current.col;
-        parser->Emessage = "Expected 'iutf', got %s", iutf_token_type_to_string (parser->current.type);
+        snprintf (err_buf, sizeof (err_buf), "Expected 'iutf', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
         return NULL;
     }
 
@@ -421,7 +780,8 @@ IutfNode* iutf_parse(IutfParser* parser) {
     if (parser->current.type != IUTF_TOK_COLON) {
         parser->Eline = parser->current.line;
         parser->Ecol = parser->current.col;
-        parser->Emessage = "Expected ':', got %s", iutf_token_type_to_string (parser->current.type);
+        snprintf (err_buf, sizeof (err_buf), "Expected ':', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
         return NULL;
     }
 
@@ -429,7 +789,8 @@ IutfNode* iutf_parse(IutfParser* parser) {
     if (parser->current.type != IUTF_TOK_IDENTIFIER) {
         parser->Eline = parser->current.line;
         parser->Ecol = parser->current.col;
-        parser->Emessage = "Expected 'init', got %s", iutf_token_type_to_string (parser->current.type);
+        snprintf (err_buf, sizeof (err_buf), "Expected 'init', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
         return NULL;
     }
 
@@ -437,7 +798,8 @@ IutfNode* iutf_parse(IutfParser* parser) {
     if (parser->current.type != IUTF_TOK_COLON) {
         parser->Eline = parser->current.line;
         parser->Ecol = parser->current.col;
-        parser->Emessage = "Expected ':', got %s", iutf_token_type_to_string (parser->current.type);
+        snprintf (err_buf, sizeof (err_buf), "Expected ':', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
         return NULL;
     }
 
@@ -445,7 +807,8 @@ IutfNode* iutf_parse(IutfParser* parser) {
     if (parser->current.type != IUTF_TOK_IDENTIFIER) {
         parser->Eline = parser->current.line;
         parser->Ecol = parser->current.col;
-        parser->Emessage = "Expected 'main', got %s", iutf_token_type_to_string (parser->current.type);
+        snprintf (err_buf, sizeof (err_buf), "Expected 'main', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
         return NULL;
     }
 
@@ -453,7 +816,8 @@ IutfNode* iutf_parse(IutfParser* parser) {
     if (parser->current.type != IUTF_TOK_BRANCH_OPEN) {
         parser->Eline = parser->current.line;
         parser->Ecol = parser->current.col;
-        parser->Emessage = "Expected '{', got %s", iutf_token_type_to_string (parser->current.type);
+        snprintf (err_buf, sizeof (err_buf), "Expected '{', got %s", iutf_token_type_to_string (parser->current.type));
+        parser->Emessage = err_buf;
         return NULL;
     }
 
