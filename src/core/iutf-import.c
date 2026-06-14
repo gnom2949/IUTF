@@ -19,6 +19,7 @@
  * IUTF Import version 0.1
  */
 #include "../includes/iutf-import.h"
+#include "imm/IntMemoryManager.h"
 #include "../includes/colors.h"
 #include <stdlib.h>
 #include <string.h>
@@ -28,29 +29,31 @@
 
 char* iutf_find_imported_file (const char* filename)
 {
-  // Провека окружения переменной
+  if (filename == NULL) return NULL;
+  // Check environment PATH
   const char* path_env = getenv ("IUTF_INCLUDE_PATH");
   if (!path_env) {
     path_env = "/usr/include";
   }
 
-  // формирование пути: /usr/include/name/name.utext
+  // path: /usr/include/name/name.utext
   size_t len = strlen (path_env) + strlen (filename) * 2 + 32;
-  char* full_path = malloc (len);
+  char* full_path = MemoryAllocate (len);
+  if (!full_path) return NULL;
   snprintf (full_path, len, "%s/%s/%s.utext", path_env, filename, filename);
 
-  // проверка на существование файла
+  // check on file existing
   struct stat st;
   if (stat (full_path, &st) == 0) {
     return full_path;
   }
 
-  // пробуем найти файл pst.utext
+  // trying to find pst.utext
   snprintf (full_path, len, "%s/%s/pst.utext", path_env, filename);
   if (stat (full_path, &st) == 0) {
     return full_path;
   }
 
-  free (full_path);
+  cleanbit (full_path);
   return NULL;
 }
