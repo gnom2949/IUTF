@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>IUTF Doc, RU</title>
+    <link rel="icon" type="image/x-icon" href="../src/imgs/favicon.ico"/>
+    <link rel="stylesheet" href="theme/style.css"/>
+     <link id="prism-theme-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"/>
+    <link id="prism-theme-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  </head>
+  <body>
+  <div class="main">
+    <div class="intro">
+      <h1>IUTF — Документация.</h1>
+      <section>
+        <h3>О формате IUTF</h3>
+        <p>IUTF - это формат данных, основанный на ветка, подобных Git.
+          В данном руководстве я расскажу о всём, что нужно знать: API, AST, и основы парсера IUTF, а также немного про расширения для него.
+        </p>
+        <p><strong>Требования:</strong>  Для работы с API IUTF вам нужно обладать минимальным пониманием языка Си и памяти. Примеры будут на C, Vala и Php.</p>
+      </section>
+      <h1>Установка</h1>
+      <section>
+          <h3>У нас есть 2 варианта: Сборка или пакеты (pacman, apt, dnf).
+            Я рекомендую использовать 1 вариант - сборку, так вы получите самый свежий бинарный файл и библиотеки к нему.
+            Для быстроты есть возможность установки напрямую через пакетный менеджер.
+          </h3>
+        <pre><code class="language-sh">
+            git clone https://github.com/gnom2949/IUTF.git
+            cd ~/IUTF
+            meson setup build --prefix=/usr
+            sudo meson install -C build
+        </code></pre>
+        <pre><code class="language-sh">
+               # Для Debian-based Систем
+               sudo apt install iutf.deb
+               # Для Arch-based
+               yay -S iutf
+               # Для RHEL-based
+               dnf install iutf-devel
+        </code></pre>
+        <h3>Установка завершена!</h3>
+      </section>
+    </div>
+    <div class="api">
+      <h1>API</h1>
+      <section>
+        <p></p>
+
+        <h2>Для начала я ознакомлю вас с хедерами, для удобства есть один хедер "iutf/iutf.h" этот хедер включает в себя все зависимости iutf, для использования подключите его: '#include iutf/iutf.h'.</h2>
+        <h3>Рассмотрим таблицу где приведены функции из API.</h3>
+        <table>
+          <tr>
+            <th>Имя заголовка</th>
+            <th>Функция</th>
+            <th>Что делает</th>
+            <th>Параметры</th>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_branch</td>
+            <td>Данная функция создает корневую ветку.</td>
+            <td>IutfNode* iutf_new_branch ().</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_add_branch</td>
+            <td>Данная функция создает новую обычную ветку.</td>
+            <td>void iutf_add_branch (IutfNode *branch, const char *key, IutfNode *value)</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>to_branch</td>
+            <td>Данная функция добавляет ключ-значение в указанную ветку.</td>
+            <td>void to_branch (IutfNode *branch, const char *key, IutfNode *value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_str</td>
+            <td>Данная функция создает строку с указанным значением.</td>
+            <td>IutfNode* iutf_new_str (const char* value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_int</td>
+            <td>Данная функция создает целое число с указанным значением.</td>
+            <td>IutfNode* iutf_new_int (long long value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_float</td>
+            <td>Данная функция создает число с плавающей точкой с указанным значением.</td>
+            <td>IutfNode* iutf_new_float (double value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_long</td>
+            <td>Данная функция создает длинное число с указанным значением.</td>
+            <td>IutfNode* iutf_new_long (long long value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_char</td>
+            <td>Данная функция создает символ с указанным значением.</td>
+            <td>IutfNode* iutf_new_char (char value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_bool</td>
+            <td>Данная функция создает булеву с указанным значением.</td>
+            <td>IutfNode* iutf_new_bool (int value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_null</td>
+            <td>Данная функция создает атрибут null.</td>
+            <td>IutfNode* iutf_new_null ().</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_array</td>
+            <td>Данная функция создает новый массив но без значения.</td>
+            <td>IutfNode* iutf_new_array ().</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>add_to_array</td>
+            <td>Данная функция добавляет значение в указанный массив.</td>
+            <td>void add_to_array (IutfNode *array, IutfNode *item).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_BigString</td>
+            <td>Данная функция создает строку 'BigString' с указанным значением.</td>
+            <td>IutfNode* iutf_new_BigString (const char* value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>iutf_new_PipeStr</td>
+            <td>Данная функция создает строку 'PipeString' с указанным значением.</td>
+            <td>IutfNode* iutf_new_PipeStr (const char* value).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>debug_print_string</td>
+            <td>Данная функция нужна для дебага, она выводит строку из iutf файла.</td>
+            <td>char* debug_print_string (IutfNode* node).</td>
+          </tr>
+           <tr>
+            <td>iutf-api.h</td>
+            <td>iutfToJSON</td>
+            <td>Данная функция превращает iutf в json-подобный формат и выводит его в буффер stdout.</td>
+            <td>char* iutfToJSON (IutfNode* node).</td>
+          </tr>
+           <tr>
+            <td>iutf-api.h</td>
+            <td>debug_print_recursive</td>
+            <td>Данная функция нужна для дебага, она обходит дерево ast и в частности помогает функции debug_print_string.</td>
+            <td>void debug_print_recursive (IutfNode* node, char** buf, size_t* size, int indent).</td>
+          </tr>
+           <tr>
+            <td>iutf-api.h</td>
+            <td>bufInit</td>
+            <td>Данная функция инициализирует буффер-структуру находящуюся в iutf-api.h.</td>
+            <td>void bufInit (IutfApiBuf* buf).</td>
+          </tr>
+           <tr>
+            <td>iutf-api.h</td>
+            <td>bufPrint</td>
+            <td>Данная функция печатает в буффер (динамический массив).</td>
+            <td>void bufPrint (IutfApiBuf* buf, const char* fmt, ...).</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>ApiGetLastErrLn</td>
+            <td>Данная функция получает последнюю линию ошибки.</td>
+            <td>int ApiGetLastErrLn ().</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>ApiGetLastErrCol</td>
+            <td>Данная функция получает последний столбец ошибки.</td>
+            <td>int ApiGetLastErrCol ().</td>
+          </tr>
+          <tr>
+            <td>iutf-api.h</td>
+            <td>ApiGetLastErrMessage</td>
+            <td>Данная функция получает последнее сообщение ошибки.</td>
+            <td>const char* ApiGetLastErrMessage ().</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_node_new</td>
+            <td>Данная функция создает новую ноду указанного типа.</td>
+            <td>IutfNode* iutf_node_new (IutfNodeType type).</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_node_free</td>
+            <td>Данная функция освобождает память занятую нодой и его дочерними элементами.</td>
+            <td>void iutf_node_free (IutfNode* node).</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_branch_list_new</td>
+            <td>Данная функция создает новый пустой список который нужен для хранения имён веток.</td>
+            <td>IutfBrList* iutf_branch_list_new ().</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_branch_list_free</td>
+            <td>Данная функция освобождает память занятую списком веток и сохранёнными именами.</td>
+            <td>void iutf_branch_list_free (IutfBrList* list).</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_branch_list_add</td>
+            <td>Данная функция добавляет имя ветки в список.</td>
+            <td>void iutf_branch_list_add (IutfBrList* list, const char* name).</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_collect_branches</td>
+            <td>Данная функция обходит дерево нод и собирает все имена веток в список.</td>
+            <td>void iutf_collect_branches (IutfNode* node, IutfBrList* list).</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_has_branch</td>
+            <td>Данная функция проверяет, есть ли ветка с указанным именем в списке, возвращает 1 если есть и 0 если нет.</td>
+            <td>int iutf_has_branch (IutfBrList *list, const char *name).</td>
+          </tr>
+          <tr>
+            <td>iutf-ast.h</td>
+            <td>iutf_branch_get_All</td>
+            <td>Данная функция создает список, собирает все ветки из дерева и возвращает список.</td>
+            <td>IutfBrList* iutf_branch_get_All (IutfNode* node).</td>
+          </tr>
+        </table>
+      </section>
+    </div>
+  </div>
+    <footer class="main-footer">
+      <div class="footer-content">
+        <h5>Copyright © 2026 Aleksandr Silaev</h5>
+        <a class="src-btn" href="https://github.com/gnom2949/IUTF">Source code</a>
+        <img class="footimg" src="../src/imgs/IUTFLogo.svg" alt="IUTF Logo"/>
+    </div>
+  </footer>
+     <!-- Prism core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>      <!-- C -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>     <!-- Go -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-vala.min.js"></script>   <!-- Vala -->
+    <script src="theme/m.js"></script>
+  </body>
+</html>
