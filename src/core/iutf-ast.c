@@ -15,12 +15,14 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * IUTF Abstract Syntax Tree version 0.2.5
  */
 
 #include "../includes/iutf-ast.h"
+#include <IntMemoryManager.h>
 
 IutfNode* iutf_node_new(IutfNodeType type) {
-    IutfNode* node = calloc(1, sizeof(IutfNode));
+    IutfNode* node = MemoryAllocateAndFillZero (1, sizeof(IutfNode));
     if (!node) return NULL;
     node->type = type;
     node->key = NULL;
@@ -29,7 +31,7 @@ IutfNode* iutf_node_new(IutfNodeType type) {
 
 IutfBrList* iutf_branch_list_new (void)
 {
-  IutfBrList* list = malloc (sizeof(IutfBrList));
+  IutfBrList* list = MemoryAllocate (sizeof(IutfBrList));
   if (!list) return NULL;
 
   list->names = NULL;
@@ -44,11 +46,11 @@ void iutf_branch_list_free (IutfBrList* list)
   if (list) {
     if (list->names) {
       for (size_t i = 0; i < list->count; i++) {
-        free (list->names[i]);
+        cleanbit (list->names[i]);
       }
-      free (list->names);
+      cleanbit (list->names);
     }
-    free (list);
+    cleanbit (list);
   }
 }
 
@@ -119,30 +121,30 @@ void iutf_node_free(IutfNode* node)
 {
     if (!node) return;
 
-    free(node->key);
+    cleanbit (node->key);
 
     switch (node->type)
     {
         case IUTF_NODE_STRING:
         case IUTF_NODE_BIGSTRING:
         case IUTF_NODE_PIPESTRING:
-            free(node->data.str_value);
+            cleanbit (node->data.str_value);
             break;
         case IUTF_NODE_ARRAY:
             for (size_t i = 0; i < node->data.array.size; i++) {
                 iutf_node_free(node->data.array.items[i]);
             }
-            free(node->data.array.items);
+            cleanbit (node->data.array.items);
             break;
         case IUTF_NODE_BRANCH:
             for (size_t i = 0; i < node->data.branch.size; i++) {
                 iutf_node_free(node->data.branch.items[i]);
             }
-            free(node->data.branch.items);
+            cleanbit (node->data.branch.items);
             break;
         default:
             break;
     }
 
-    free(node);
+    cleanbit (node);
 }
