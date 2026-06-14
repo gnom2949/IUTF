@@ -15,25 +15,38 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF Validator version 0.5
+ * IUTF Validator version 0.6
  */
 
-#include "../includes/iutf-validator.h"
+#include "../includes/iutf-lexer.h"
+#include "../includes/iutf-ast.h"
 #include <stdio.h>
 
 static int veln = 0; // validator error line
 static int vecol = 0; // validator error column
 static const char* vemsg = NULL; // validator error message
 
-int iutf_validate(IutfNode* root) {
+int ValidGetErrLn (void) { return veln; }
+int ValidGetErrCol (void) { return vecol; }
+const char* ValidGetErrMessage (void) { return vemsg; }
+
+int iutf_validate(IutfNode* root, IutfLexer* lex)
+{
+
+  veln = 0;
+  vecol = 0;
+  vemsg = NULL;
+
     if (!root) {
-        fprintf(stderr, "\033[31mRoot node is NULL!!\033[0m\n");
+        vemsg = "root node is NULL!!";
         return 0;
     }
 
     if (root->type != IUTF_NODE_BRANCH) {
-        fprintf(stderr, "\033[33mRoot must be a branch\033[0m\n");
-        return 0;
+      veln = lex->line;
+      vecol = lex->col;
+      vemsg = "root must be a branch.";
+      return 0;
     }
 
     // Validation: Check that the root contains the required keys
@@ -44,13 +57,17 @@ int iutf_validate(IutfNode* root) {
         IutfNode* item = root->data.branch.items[i];
         if (item->key && strcmp(item->key, "title") == 0) {
             if (item->type != IUTF_NODE_STRING) {
-                fprintf(stderr, "\033[33mField 'title' must be a string\033[0m\n");
-                return 0;
+              veln = lex->line;
+              vecol = lex->col;
+              vemsg = "field 'title' must be a string!";
+              return 0;
             }
             has_title = 1;
         } else if (item->key && strcmp(item->key, "version") == 0) {
             if (item->type != IUTF_NODE_FLOAT && item->type != IUTF_NODE_INTEGER) {
-                fprintf(stderr, "\033[31mField 'version' must be a number\033[0m\n");
+                veln = lex->line;
+                vecol = lex->col;
+                vemsg = "field 'version' must be a string!";
                 return 0;
             }
             has_version = 1;
@@ -58,7 +75,12 @@ int iutf_validate(IutfNode* root) {
     }
 
     if (!has_title || !has_version) {
-        fprintf(stderr, "\033[33mMissing required fields: 'title' and 'version'\033[0m\n");
+        veln = lex->line;
+        vecol = lex->col;
+        vemsg = !has_title && !has_version ? "missing required fields: 'title' and 'version'."
+                      : !has_title
+                                ? "missing required field: 'title'."
+                                : "missing required field: 'version'.";
         return 0;
     }
 
