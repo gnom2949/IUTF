@@ -19,17 +19,19 @@
  */
 
 #include "../includes/iutf-lexer.h"
+#include "imm/IntMemoryManager.h"
 #include <string.h>
 #include <ctype.h>
 
-static IutfToken ErrToken (IutfLexer* lex, const char* message)
-{
-    lex->line = lex->line;
-    lex->col = lex->col;
-    lex->message = message;
+Only IutfToken read_directive (IutfLexer *lexer, size_t start);
 
-    IutfToken tok = {0};
+IutfToken ErrToken (IutfLexer* lex, const char* message)
+{
+    print_error_at (lex->input, lex->line, lex->col, 1, message);
+    IutfToken tok;
     tok.type = IUTF_TOK_ERROR;
+    tok.start = NULL;
+    tok.length = 0;
     tok.line = lex->line;
     tok.col = lex->col;
     return tok;
@@ -45,22 +47,22 @@ int LexerGetErrCol (IutfLexer* lex)
   return lex->col;
 }
 
-const char* LexerGetErrMessage (IutfLexer* lex)
+ustring LexerGetErrMessage (IutfLexer* lex)
 {
   return lex->message;
 }
 
-static inline int is_ident_start (char c)
+Only inline int is_ident_start (char c)
 {
   return isalpha((unsigned char) c) || c == '_';
 }
 
-static inline int is_ident_continue (char c)
+Only inline int is_ident_continue (char c)
 {
   return isalnum(c) || c == '_' || c == '-';
 }
 
-static inline void advance (IutfLexer* lexer) {
+Only inline void advance (IutfLexer* lexer) {
   if (lexer->pos < lexer->len) {
     if (lexer->input[lexer->pos] == '\n') {
       lexer->line++;
@@ -72,20 +74,21 @@ static inline void advance (IutfLexer* lexer) {
   }
 }
 
-static inline char peek (IutfLexer* lexer, int offset)
+Only inline char peek (IutfLexer* lexer, int offset)
 {
   size_t index = lexer->pos + offset;
   if (index >= lexer->len) return '\0';
   return lexer->input[index];
 }
 
-static inline char current (IutfLexer* lexer)
+Only inline char current (IutfLexer* lexer)
 {
   return peek(lexer, 0);
 }
 
-static inline int get_ln_start (const char* input, int Lnn/*Line number*/)
+Only inline int get_ln_start (const char* input, int Lnn/*Line number*/)
 {
+  if (!input || Lnn < 1) return -1;
   int curL = 1;
   const char* p = input;
   while (*p && curL < Lnn) {
@@ -96,8 +99,10 @@ static inline int get_ln_start (const char* input, int Lnn/*Line number*/)
   return p - input;
 }
 
-static inline int get_ln_len (const char* input, int start_pos)
+Only inline int get_ln_len (const char* input, int start_pos)
 {
+  if (!input || start_pos < 0) return -1;
+
   const char* p = input + start_pos;
   int len = 0;
   while (*p && *p != '\n') {
@@ -107,17 +112,28 @@ static inline int get_ln_len (const char* input, int start_pos)
   return len;
 }
 
-void print_error_at (const char* input, int ln, int col, const char* msg)
+void print_error_at (ustring input, int ln, int col, int span, ustring msg)
 {
-  fprintf (stderr, "error in str: \033[36m%d\033[0m, col: \033[36m%d\033[0m\n", ln, col);
+  if (!input || !msg) {
+    fprintf (stderr, COL_RED "Error: %s\n" COL_DEF, msg ? msg : "Unknown error");
+    return;
+  }
+
+  fprintf (stderr, "error at line: \033[36m%d\033[0m, col: \033[36m%d\033[0m\n\033[31m%s\n\033[0m\n", ln, col, msg ? msg : "NULL ID!");
 
   int start_pos = get_ln_start (input, ln);
   int len = get_ln_len (input, start_pos);
-  if (len <= 0) return;
+  if (len <= 0 || start_pos < 0) {
+    fprintf (stderr, COL_YLW "Cannot display line!\n" COL_DEF);
+    return;
+  }
 
-  const char* ln_ptr = input + start_pos;
+  ustring ln_ptr = input + start_pos;
   fwrite (ln_ptr, 1, len, stderr);
   fprintf (stderr, "\n");
+
+  if (span <=  0) { span = 1; }
+  if (col + span - 1 > len) { span = len - col + 1; }
 
   // 1. print space to needed column (without color)
   for (int i = 1; i < col; i++) {
@@ -125,15 +141,14 @@ void print_error_at (const char* input, int ln, int col, const char* msg)
   }
 
   // 2. print the red arrows and message (with red color)
-  fputs ("\033[31m", stderr);
-  for (int i = 0; i < (int)strlen (msg); i++) {
+  fputs (COL_RED, stderr);
+  for (int i = 0; i < span; i++) {
     fputc ('^', stderr);
   }
-  fputs ("\033[0m\n", stderr);
+  fputs ("\n" COL_DEF, stderr);
 }
 
-
-static IutfToken make_token (IutfLexer* lexer, IutfTokenType type, size_t start)
+Only IutfToken make_token (IutfLexer* lexer, IutfTokenType type, size_t start)
 {
   IutfToken token;
   token.type = type;
@@ -142,18 +157,6 @@ static IutfToken make_token (IutfLexer* lexer, IutfTokenType type, size_t start)
   token.line = lexer->line;
   token.col = lexer->col - token.length;
   return token;
-}
-
-static IutfToken error_token (IutfLexer* lexer, const char* msg)
-{
-  print_error_at (lexer->input, lexer->line, lexer->col, msg);
-  IutfToken tok;
-  tok.type = IUTF_TOK_ERROR;
-  tok.start = NULL;
-  tok.length = 0;
-  tok.line = lexer->line;
-  tok.col = lexer->col;
-  return tok;
 }
 
 static IutfToken read_number (IutfLexer* lexer, size_t start)
@@ -175,7 +178,7 @@ static IutfToken read_string (IutfLexer* lexer)
         if (current (lexer) != '\0') {
           advance (lexer);
         } else {
-            return error_token (lexer, "Unterminated escape sequence");
+            return ErrToken (lexer, "Unterminated escape sequence");
         }
     } else {
       advance (lexer);
@@ -183,7 +186,7 @@ static IutfToken read_string (IutfLexer* lexer)
   }
 
   if (current (lexer) != '"') {
-    return error_token(lexer, "Unterminated string");
+    return ErrToken (lexer, "Unterminated string");
   }
   advance (lexer);
   return make_token(lexer, IUTF_TOK_STRING, start);
@@ -201,6 +204,9 @@ static IutfToken read_identifier (IutfLexer* lexer, size_t start)
   if (len == 4 && strncmp (str, "true", 4) == 0) return make_token (lexer, IUTF_TOK_TRUE, start);
   if (len == 5 && strncmp (str, "false", 5) == 0) return make_token (lexer, IUTF_TOK_FALSE, start);
   if (len == 4 && strncmp (str, "null", 4) == 0) return make_token (lexer, IUTF_TOK_NULL, start);
+  if (len == 3 && strncmp (str, "var", 3) == 0) return make_token (lexer, IUTF_TOK_VAR, start);
+  if (len == 7 && strncmp (str, "arrayof", 7) == 0) return make_token (lexer, IUTF_TOK_ARRAYOF, start);
+  if (len == 5 && strncmp (str, "utext", 5) == 0) return make_token (lexer,  IUTF_TOK_UTEXT, start);
 
   return make_token (lexer, IUTF_TOK_IDENTIFIER, start);
 }
@@ -215,7 +221,7 @@ static IutfToken read_bigstring (IutfLexer* lexer)
     advance (lexer);
   }
   if (depth != 0) {
-    return error_token(lexer, "Unterminated BigString");
+    return ErrToken (lexer, "Unterminated BigString");
   }
   return make_token (lexer, IUTF_TOK_BIGSTRING_START, start);
 }
@@ -238,12 +244,12 @@ static void skip_block_comment (IutfLexer* lexer)
     }
     advance (lexer);
   }
-  error_token(lexer, "Unterminated block comment");
+  ErrToken (lexer, "Unterminated block comment");
 }
 
 IutfLexer* iutf_lexer_new (const char* input)
 {
-  IutfLexer* lexer = malloc(sizeof(IutfLexer));
+  IutfLexer* lexer = MemoryAllocate(sizeof(IutfLexer));
   if (!lexer) return NULL;
 
   lexer->input = input;
@@ -258,7 +264,7 @@ IutfLexer* iutf_lexer_new (const char* input)
 void iutf_lexer_corrupt (IutfLexer* lexer)
 {
   if (lexer) {
-    free (lexer);
+    cleanbit (lexer);
   }
 }
 
@@ -280,10 +286,18 @@ IutfToken iutf_lexer_next (IutfLexer* lexer) {
         return make_token (lexer, IUTF_TOK_LBRACKET, start);
     }
     case ']': return make_token (lexer, IUTF_TOK_RBRACKET, start);
-    case ':': return make_token (lexer, IUTF_TOK_COLON, start);
+    case ':': 
+      if (current (lexer) == ':')
+      {
+        advance(lexer);
+        return make_token (lexer, IUTF_TOK_DOUBLE_COLON, start);
+      }
+      return make_token (lexer, IUTF_TOK_COLON, start);
+
     case '=': return make_token (lexer, IUTF_TOK_EQUALS, start);
     case '|': return make_token (lexer, IUTF_TOK_PIPE, start);
     case ',': return make_token (lexer, IUTF_TOK_COMMA, start);
+    case '@': return read_directive (lexer, start);
     case '#':
       if (current (lexer) == '!') {
         advance (lexer);
@@ -310,13 +324,14 @@ IutfToken iutf_lexer_next (IutfLexer* lexer) {
     case '\r':
     case '\n':
         continue;
+    case '.': return make_token(lexer, IUTF_TOK_DOT, start);
     default:
       if (isdigit(c)) {
         return read_number (lexer, start);
       } else if (is_ident_start(c)) {
         return read_identifier (lexer, start);
       } else {
-        return error_token (lexer, "Unexpected character");
+        return ErrToken (lexer, "Unexpected character");
       }
     }
   }
@@ -328,6 +343,15 @@ IutfToken iutf_lexer_next (IutfLexer* lexer) {
   token.line = lexer->line;
   token.col = lexer->col;
   return token;
+}
+
+static IutfToken read_directive (IutfLexer *lexer, size_t start)
+{
+  if (!is_ident_start (current(lexer))) return ErrToken (lexer, "Expected identifier after '@'");
+
+  while (is_ident_continue (current (lexer))) advance (lexer);
+
+  return make_token (lexer, IUTF_TOK_DIRECTIVE, start);
 }
 
 const char* iutf_token_type_to_string (IutfTokenType type)
@@ -358,6 +382,12 @@ const char* iutf_token_type_to_string (IutfTokenType type)
   case IUTF_TOK_COMMENT_CPP: return "COMMENT_CPP";
   case IUTF_TOK_COMMENT_BLOCK_START: return "COMMENT_BLOCK_START";
   case IUTF_TOK_COMMENT_BLOCK_END: return "COMMENT_BLOCK_END";
+  case IUTF_TOK_DOT: return ".";
+  case IUTF_TOK_DOUBLE_COLON: return "::";
+  case IUTF_TOK_VAR: return "var";
+  case IUTF_TOK_ARRAYOF: return "arrayof";
+  case IUTF_TOK_UTEXT: return "utext";
+  case IUTF_TOK_DIRECTIVE: return "@";
   default: return "UNKNOWN";
   }
 }
