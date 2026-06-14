@@ -1,11 +1,4 @@
 iutf-parser
-Ex.iutf
-ex.iutf
-rong.iutf
-debian/files
-debian/debhelper-build-stamp
-debian/libiutf
-debian/libiutf-dev
-debian/libiutf-dev.substvars
-debian/tmp
-debian/libiutf.substvarstest.iutf
+name.utext
+test.iutf
+subprojects/imm/
