@@ -13,6 +13,6 @@ IutfStream* stream_open (const char* filename)
     return NULL;
   }
 
-  // читаем весь файл в память
+  // reading all file in memory
   fseek (fp, 0, SEEK_END)
 }
