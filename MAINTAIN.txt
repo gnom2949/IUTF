@@ -1,0 +1,6 @@
+Before release at Stable branch or main,
+make sure you're a DELETE ALL DEBUG FEATURES
+AND TEST EXECUTABLE/LIBRARIES WITH Valgrind, GDB, tests.
+Build a packages in tar.gz/tar.xz! After, 
+UPDATE FILES FOR PACKAGE MANAGERS,
+upload it at Github Releases and package managers repository!
