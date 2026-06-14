@@ -18,30 +18,35 @@
  * IUTF Parser Header version v0.6
  */
 
-#ifndef IUTF_PARSER_H
-#define IUTF_PARSER_H
+#ifndef _IUTF_PARSER_H_
+#define _IUTF_PARSER_H_
 
 #include "iutf-lexer.h"
 #include "iutf-ast.h"
 #include "colors.h"
+#include <stdbool.h>
 
 typedef struct {
     IutfLexer* lexer;
     IutfToken current;
+    IutfVarTable *global_vars;
+    IutfVarTable *local_vars;
+    IutfVarTable *shared_vars;
+    bool is_utext;
     int Eline;
     int Ecol;
-    const char* Emessage;
+    ustring Emessage;
     int line;
     int col;
-    const char* message;
+    ustring message;
 } IutfParser;
 
-IutfParser* iutf_parser_new (const char* input);
+IutfParser* iutf_parser_new (ustring input);
 void iutf_parser_free (IutfParser* parser);
 IutfNode* iutf_parse (IutfParser* parser);
-IutfNode* iutf_parse_from_file (const char* filename);
-
+IutfNode *iutf_parse_utext (IutfParser *parser);
+IutfNode* iutf_parse_from_file (ustring filename);
 int ParserGetErrLn (IutfParser* IPS);
 int ParserGetErrCol (IutfParser* IPS);
-const char* ParserGetErrMessage (IutfParser* IPS);
-#endif /* IUTF_PARSER_H */
+ustring ParserGetErrMessage (IutfParser* IPS);
+#endif /* _IUTF_PARSER_H_ */

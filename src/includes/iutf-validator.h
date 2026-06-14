@@ -17,15 +17,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef IUTF_VALIDATOR_H
-#define IUTF_VALIDATOR_H
+#ifndef _IUTF_VALIDATOR_H_
+#define _IUTF_VALIDATOR_H_
 
 #include "iutf-ast.h"
 
-int iutf_validate (IutfNode* root);
+int iutf_validate (IutfNode* root, IutfLexer* lex);
 
 int ValidGetErrLn (void);
 int ValidGetErrCol (void);
 const char* ValidGetErrMessage (void);
 
-#endif /* IUTF_VALIDATOR_H */
+#endif /* _IUTF_VALIDATOR_H_ */

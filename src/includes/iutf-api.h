@@ -15,15 +15,23 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF API Header version 0.2.2
+ * IUTF API Header version 0.2.3
  */
-#ifndef IUTF_API_H
-#define IUTF_API_H
+#ifndef _IUTF_API_H_
+#define _IUTF_API_H_
+
+#if defined(__cplusplus)
+  extern "C" {
+#endif
 
 #define MAX_BUF_SIZE 4096
 #define MIN_BUF_SIZE 1024
 #define IUTF_PRETTY_PRINT (1 << 0)
 #define IUTF_UNESCAPED_UNICODE (1 << 1)
+#define IUTF_UNESCAPED_SLASHES (1 << 2)
+#define IUTF_HEX_TAG (1 << 3)
+#define IUTF_NUMERIC_CHECK (1 << 4)
+#define IUTF_FORCE_BRANCH (1 << 5)
 
 #include "iutf-ast.h"
 
@@ -32,6 +40,12 @@ typedef struct {
   size_t size;
   size_t capacity;
 } IutfApiBuf;
+
+typedef struct {
+  char *data;
+  size_t size;
+  size_t capacity;
+}JBuf;
 
 //create root branch
 IutfNode* iutf_new_branch (void);
@@ -95,4 +109,10 @@ void bufPrint (IutfApiBuf* buf, const char* fmt, ...);
 int ApiGetLastErrLn (void);
 int ApiGetLastErrCol (void);
 const char* ApiGetLastErrMessage (void);
+void iutf_free_string (char *ptr);
+
+#if defined(__cplusplus)
+  }
+#endif /* __cplusplus */
+
 #endif

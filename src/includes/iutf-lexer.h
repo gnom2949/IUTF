@@ -15,11 +15,11 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF lexer header version - 0.6
+ * IUTF lexer header version - 0.7
  */
 
-#ifndef IUTF_LEXER_H
-#define IUTF_LEXER_H
+#ifndef _IUTF_LEXER_H_
+#define _IUTF_LEXER_H_
 
 //#define _GNU_SOURCE
 
@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "colors.h"
+#include "types.h"
 
 typedef enum {
   IUTF_TOK_EOF,
@@ -41,6 +42,7 @@ typedef enum {
   IUTF_TOK_EQUALS, // =
   IUTF_TOK_PIPE, // |
   IUTF_TOK_COMMA, // ,
+  IUTF_TOK_DOT, // .
   IUTF_TOK_STRING,
   IUTF_TOK_INTEGER, // 123
   IUTF_TOK_CHARACTER, //'c'
@@ -55,41 +57,46 @@ typedef enum {
   IUTF_TOK_COMMENT_CPP, // //
   IUTF_TOK_COMMENT_BLOCK_START, // /*
   IUTF_TOK_COMMENT_BLOCK_END, // */
+  IUTF_TOK_DIRECTIVE, // aka 'at', @
+  IUTF_TOK_VAR, // var keyword
+  IUTF_TOK_ARRAYOF, // array keyword
+  IUTF_TOK_UTEXT, // utext keyword
+  IUTF_TOK_DOUBLE_COLON, // ::
 } IutfTokenType;
 
 typedef struct {
   IutfTokenType type;
-  const char* start;
-  size_t length;
+  ustring start;
+  size length;
   int line;
   int col;
-  const char* message;
+  ustring message;
 } IutfToken;
 
 typedef struct {
-  const char* input;
-  size_t pos;
-  size_t len;
+  ustring input;
+  size pos;
+  size len;
   int Eline;
   int Ecol;
-  const char* Emessage;
+  ustring Emessage;
   int line;
   int col;
-  const char* message;
+ ustring message;
 } IutfLexer;
 
-IutfLexer* iutf_lexer_new (const char* input);
+IutfLexer* iutf_lexer_new (ustring input);
 void iutf_lexer_corrupt (IutfLexer* lexer);
 IutfToken iutf_lexer_next (IutfLexer* lexer);
 
-const char* iutf_token_type_to_string (IutfTokenType type);
+ustring iutf_token_type_to_string (IutfTokenType type);
 
-void print_error_at (const char* input, int line, int col, const char* msg);
+void print_error_at (ustring input, int line, int col, int span, ustring msg);
 
-char* iutf_find_imported_file (const char* filename);
+string iutf_find_imported_file (ustring filename);
 
-static IutfToken ErrToken (IutfLexer* lex, const char* message);
+IutfToken ErrToken (IutfLexer* lex, const char* message);
 int LexerGetErrLn (IutfLexer* lex);
 int LexerGetErrCol (IutfLexer* lex);
-const char* LexerGetErrMessage (IutfLexer* lex);
-#endif /* IUTF_LEXER_H */
+ustring LexerGetErrMessage (IutfLexer* lex);
+#endif /* _IUTF_LEXER_H_ */

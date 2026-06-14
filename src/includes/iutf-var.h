@@ -1,4 +1,4 @@
-/* iutf-import.h
+/* iutf-var.h
  *
  * Copyright 2026 Int Software, Aleksandr Silaev
  *
@@ -15,19 +15,25 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
- * IUTF Import version 0.1
+ * IUTF VAR HEADER VERSION 1.
  */
-#ifndef _IUTF_IMPORT_H_
-#define _IUTF_IMPORT_H_
+#ifndef _IUTF_VARIABLE_H_
+#define _IUTF_VARIABLE_H_
 
-#if defined(__cplusplus)
-  extern "C" {
-#endif
+#include "iutf-ast.h"
 
-char* iutf_find_imported_file(const char* filename);
+typedef struct {
+    IutfVarTable *global;
+    IutfVarTable *local;
+    IutfVarTable *shared;
+} IutfResolveCtx;
 
-#if defined(__cplusplus)
-  }
-#endif /* __cplusplus */
+int resolve_refs(IutfNode *root, IutfResolveCtx *ctx);
 
-#endif
+IutfNode *resolve_one (IutfNode *ref_node, IutfResolveCtx *ctx);
+
+int iutf_parse_ref_string (ustring token_start, size token_len, IutfRefScope *scope, char **name_out);
+
+long long getlenof (IutfNode *array_node);
+
+#endif /* _IUTF_VARIABLE_H */

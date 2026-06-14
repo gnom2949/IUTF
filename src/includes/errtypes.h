@@ -18,9 +18,33 @@
  * IUTF Error Types version v0.1
  */
 
+#ifndef IUTF_ERROR_TYPES_H
+#define IUTF_ERROR_TYPES_H
+#include "types.h"
+#define IUTF_ERROR_MAP(XX) \
+    XX(IUTF_OK, "OK") \
+    XX(IUTF_ERR, "Error") \
+    XX(IUTF_ERR_MISSING_FIELD, "Missing field") \
+    XX(IUTF_ERR_ESCAPED_TOKEN, "Escaped token Notification!") \
+    XX(IUTF_ERR_MALLOC_FAILED, "Error: Malloc fail") \
+    XX(IUTF_WAIT, "Waiting for data") \
+    XX(IUTF_ALERT, "Alert condition!") \
+    XX(IUTF_PRSR_PANIC, "Iutf Parser Panic!") \
+    XX(IUTF_STOP, "Iutf Stopped") \
+    XX(IUTF_ERR_UNKNOWN_TYPE, "Iutf Unknown type") \
+    XX(IUTF_BUSY, "Iutf busy") \
+    XX(IUTF_ERR_MISSING_FILE, "Missing required file.") \
+    XX(IUTF_ERR_UNCOMPACTABLE_EXT, "Uncompactable file extension!") \
+    XX(IUTF_ERR_UNRESOLVED_REF, "Unresolved variable reference") \
+    XX(IUTF_ERR_INVALID_REF, "Invalid reference syntax") \
+    XX(IUTF_ERR_UNDEFINED_VAR, "Undefined variable")
+
 typedef enum {
-    IUTF_SUCCESS = 0,
-    IUTF_ERR_MISSING_FIELD,
-    IUTF_ERR_ESCAPED_TOKEN,
-    IUTF_ERR_MALLOC_FAILED
-}iutf_errtype;
+    #define ITER(code, msg) code, 
+        IUTF_ERROR_MAP(ITER)
+    #undef ITER
+} iutf_errtype;
+
+string iutf_strerror (iutf_errtype err);
+
+#endif
